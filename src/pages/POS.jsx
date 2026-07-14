@@ -7,7 +7,7 @@ import LastScanned from "../components/LastScanned";
 import Cart from "../components/Cart";
 import Calendar from "../components/Calendar";
 import Totals from "../components/Totals";
-import CustomerManager from "../components/CustomerManager";
+import CustomerManager from "./CustomerManager/CustomerManager";
 
 import "./POS.css";
 

@@ -26,31 +26,26 @@ const createApplicationMenu = () => {
         },
       ],
     },
+{
+  label: "Edit",
+  submenu: [
     {
-      label: "Edit",
-      submenu: [
-        {
-          label: "Customers",
-          accelerator: "Ctrl+Shift+C",
-          click: () => {
-            mainWindow?.webContents.send("open-customer-manager");
-          },
-        },
-        {
-          label: "Items",
-          click: () => {
-            mainWindow?.webContents.send("open-item-manager");
-          },
-        },
-        { type: "separator" },
-        {
-          label: "Yard Fee",
-          click: () => {
-            mainWindow?.webContents.send("open-yard-fee");
-          },
-        },
-      ],
+      label: "Customers",
+      accelerator: "Ctrl+Shift+C",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await mainWindow.webContents.executeJavaScript(`
+          window.dispatchEvent(
+            new Event("open-customer-manager")
+          );
+        `);
+      },
     },
+  ],
+},
     {
       label: "View",
       submenu: [
@@ -91,7 +86,7 @@ const createWindow = () => {
     backgroundColor: "#111827",
 
     webPreferences: {
-      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+    //  preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       contextIsolation: true,
       nodeIntegration: false,
     },
