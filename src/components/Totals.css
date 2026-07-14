@@ -1,0 +1,61 @@
+.totals-card{
+
+    background: #f3f4f6;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius:10px;
+
+   display:flex;
+flex-direction:column;
+    width:100%;
+    height:100%;
+
+    box-sizing:border-box;
+overflow:hidden;
+
+    padding:25px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    box-shadow:0 12px 30px rgba(0,0,0,.2);
+
+}
+
+.totals-card h2{
+
+    margin-bottom:30px;
+
+}
+
+.total-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    margin-bottom:18px;
+
+    font-size:18px;
+
+}
+
+.grand-total{
+
+    margin-top:auto;
+
+    border-top:2px solid #eee;
+
+    padding-top:25px;
+
+}
+
+.grand-total h1{
+
+    color:#22c55e;
+
+    font-size:48px;
+
+    margin-top:10px;
+
+}

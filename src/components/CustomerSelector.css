@@ -1,0 +1,148 @@
+.customer-card {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 16px;
+
+  background: #f8fafc;
+  border: 1px solid #dbe3ea;
+  border-radius: 10px;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.customer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  min-width: 0;
+}
+
+.customer-field label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.customer-search,
+.customer-select {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  outline: none;
+
+  color: #111827;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.customer-search:focus,
+.customer-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+}
+
+.customer-details {
+  padding: 14px;
+
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.customer-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 14px;
+}
+
+.customer-details-label {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.customer-details h3 {
+  margin: 0;
+
+  color: #111827;
+  font-size: 16px;
+}
+
+.customer-number-badge {
+  min-width: 54px;
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background: #111827;
+  color: #ffffff;
+
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.customer-details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.customer-details-grid div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding-top: 10px;
+
+  border-top: 1px solid #eef2f7;
+}
+
+.customer-details-grid span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.customer-details-grid strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.customer-empty {
+  padding: 16px;
+
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
