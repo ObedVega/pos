@@ -44,6 +44,36 @@ const createApplicationMenu = () => {
         `);
       },
     },
+    {
+      label: "Items",
+      accelerator: "Ctrl+Shift+I",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await mainWindow.webContents.executeJavaScript(`
+          window.dispatchEvent(
+            new Event("open-items-manager")
+          );
+        `);
+      },
+    },
+    {
+      label: "Daily Notice",
+      accelerator: "Ctrl+Shift+D",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await mainWindow.webContents.executeJavaScript(`
+          window.dispatchEvent(
+            new Event("open-daily-notice")
+          );
+        `);
+      },
+    },
   ],
 },
     {

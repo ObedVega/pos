@@ -8,6 +8,8 @@ import Cart from "../components/Cart";
 import Calendar from "../components/Calendar";
 import Totals from "../components/Totals";
 import CustomerManager from "./CustomerManager/CustomerManager";
+import ItemsManager from "./ItemsManager/ItemsManager";
+import DailyNotice from "./DailyNotice/DailyNotice";
 
 import "./POS.css";
 
@@ -17,20 +19,59 @@ export default function POS() {
     setIsCustomerManagerOpen,
   ] = useState(false);
 
-  useEffect(() => {
-    if (!window.electronAPI?.onOpenCustomerManager) {
-      return undefined;
-    }
+  const [
+    isItemsManagerOpen,
+    setIsItemsManagerOpen,
+  ] = useState(false);
 
-    const removeListener =
-      window.electronAPI.onOpenCustomerManager(() => {
-        setIsCustomerManagerOpen(true);
-      });
+  const [
+    isDailyNoticeOpen,
+    setIsDailyNoticeOpen,
+  ] = useState(false);
+
+  useEffect(() => {
+    const handleOpenCustomerManager = () => {
+      setIsCustomerManagerOpen(true);
+    };
+
+    const handleOpenItemsManager = () => {
+      setIsItemsManagerOpen(true);
+    };
+
+    const handleOpenDailyNotice = () => {
+      setIsDailyNoticeOpen(true);
+    };
+
+    window.addEventListener(
+      "open-customer-manager",
+      handleOpenCustomerManager
+    );
+
+    window.addEventListener(
+      "open-items-manager",
+      handleOpenItemsManager
+    );
+
+    window.addEventListener(
+      "open-daily-notice",
+      handleOpenDailyNotice
+    );
 
     return () => {
-      if (typeof removeListener === "function") {
-        removeListener();
-      }
+      window.removeEventListener(
+        "open-customer-manager",
+        handleOpenCustomerManager
+      );
+
+      window.removeEventListener(
+        "open-items-manager",
+        handleOpenItemsManager
+      );
+
+      window.removeEventListener(
+        "open-daily-notice",
+        handleOpenDailyNotice
+      );
     };
   }, []);
 
@@ -65,6 +106,22 @@ export default function POS() {
         <CustomerManager
           onClose={() =>
             setIsCustomerManagerOpen(false)
+          }
+        />
+      )}
+
+      {isItemsManagerOpen && (
+        <ItemsManager
+          onClose={() =>
+            setIsItemsManagerOpen(false)
+          }
+        />
+      )}
+
+      {isDailyNoticeOpen && (
+        <DailyNotice
+          onClose={() =>
+            setIsDailyNoticeOpen(false)
           }
         />
       )}
