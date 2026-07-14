@@ -1,32 +1,6 @@
 import React, { useMemo, useState } from "react";
 import "./CustomerSelector.css";
-
-const customers = [
-  {
-    id: 14,
-    name: "Bang Tran",
-    truckNumber: "14",
-    phone: "(619) 555-0101",
-  },
-  {
-    id: 22,
-    name: "Johnson Catering",
-    truckNumber: "22",
-    phone: "(619) 555-0102",
-  },
-  {
-    id: 32,
-    name: "Chiquita Truck",
-    truckNumber: "32",
-    phone: "(619) 555-0103",
-  },
-  {
-    id: 45,
-    name: "Maria's Food Truck",
-    truckNumber: "45",
-    phone: "(619) 555-0104",
-  },
-];
+import customers from "../data/customers";
 
 export default function CustomerSelector() {
   const [search, setSearch] = useState("");
@@ -85,7 +59,7 @@ export default function CustomerSelector() {
 
           {filteredCustomers.map((customer) => (
             <option key={customer.id} value={customer.id}>
-              #{customer.id} — {customer.name}
+              {customer.name} - {customer.id}
             </option>
           ))}
         </select>

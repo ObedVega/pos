@@ -59,3 +59,24 @@ overflow:hidden;
     margin-top:10px;
 
 }
+
+.yard-fee-trigger {
+  align-self: flex-start;
+  margin-bottom: 4px;
+
+  padding: 6px 10px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+
+  background: #ffffff;
+  color: #334155;
+
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yard-fee-trigger:hover {
+  background: #f1f5f9;
+}

@@ -7,7 +7,13 @@ export default function Totals(){
 
         <div className="totals-card">
 
-            <h2>Sale Summary</h2>
+            <div className="totals-header">
+
+                <h2>Sale Summary</h2>
+
+   
+
+            </div>
 
             <div className="total-row">
 

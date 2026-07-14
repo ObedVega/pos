@@ -1,0 +1,154 @@
+.yard-fee-overlay {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 32px;
+
+  background: rgba(5, 11, 22, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.yard-fee-modal {
+  width: min(480px, 94vw);
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #f8fafc;
+  border: 1px solid #dce2e9;
+  border-radius: 12px;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+}
+
+.yard-fee-header {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 18px 22px;
+
+  background: #111827;
+  color: #ffffff;
+}
+
+.yard-fee-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.yard-fee-close-icon {
+  width: 34px;
+  height: 34px;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+
+  font-size: 24px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.yard-fee-close-icon:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.yard-fee-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  padding: 26px 22px;
+}
+
+.yard-fee-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+}
+
+.yard-fee-prefix,
+.yard-fee-suffix {
+  color: #111827;
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.yard-fee-suffix {
+  text-align: left;
+}
+
+.yard-fee-row input {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  outline: none;
+
+  background: #ffffff;
+  color: #111827;
+
+  font-size: 15px;
+  text-align: center;
+}
+
+.yard-fee-row input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.yard-fee-footer {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 22px;
+
+  border-top: 1px solid #e2e8f0;
+}
+
+.yard-fee-footer button {
+  height: 42px;
+
+  padding: 0 18px;
+
+  border-radius: 7px;
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yard-fee-save-button {
+  border: 1px solid #2563eb;
+
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.yard-fee-cancel-button {
+  border: 1px solid #cbd5e1;
+
+  background: #ffffff;
+  color: #334155;
+}

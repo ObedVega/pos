@@ -74,6 +74,21 @@ const createApplicationMenu = () => {
         `);
       },
     },
+    {
+      label: "Yard Fees",
+      accelerator: "Ctrl+Shift+Y",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await mainWindow.webContents.executeJavaScript(`
+          window.dispatchEvent(
+            new Event("open-yard-fees")
+          );
+        `);
+      },
+    },
   ],
 },
     {
@@ -107,11 +122,11 @@ const createWindow = () => {
     width: 1600,
     height: 900,
 
-    minWidth: 1600,
-    minHeight: 900,
+    minWidth: 1200,
+    minHeight: 700,
 
-    resizable: false,
-    maximizable: false,
+    resizable: true,
+    maximizable: true,
 
     backgroundColor: "#111827",
 

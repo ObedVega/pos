@@ -10,6 +10,7 @@ import Totals from "../components/Totals";
 import CustomerManager from "./CustomerManager/CustomerManager";
 import ItemsManager from "./ItemsManager/ItemsManager";
 import DailyNotice from "./DailyNotice/DailyNotice";
+import YardFeeManager from "./YardFeeManager/YardFeeManager";
 
 import "./POS.css";
 
@@ -29,6 +30,11 @@ export default function POS() {
     setIsDailyNoticeOpen,
   ] = useState(false);
 
+  const [
+    isYardFeeOpen,
+    setIsYardFeeOpen,
+  ] = useState(false);
+
   useEffect(() => {
     const handleOpenCustomerManager = () => {
       setIsCustomerManagerOpen(true);
@@ -40,6 +46,10 @@ export default function POS() {
 
     const handleOpenDailyNotice = () => {
       setIsDailyNoticeOpen(true);
+    };
+
+    const handleOpenYardFees = () => {
+      setIsYardFeeOpen(true);
     };
 
     window.addEventListener(
@@ -57,6 +67,11 @@ export default function POS() {
       handleOpenDailyNotice
     );
 
+    window.addEventListener(
+      "open-yard-fees",
+      handleOpenYardFees
+    );
+
     return () => {
       window.removeEventListener(
         "open-customer-manager",
@@ -71,6 +86,11 @@ export default function POS() {
       window.removeEventListener(
         "open-daily-notice",
         handleOpenDailyNotice
+      );
+
+      window.removeEventListener(
+        "open-yard-fees",
+        handleOpenYardFees
       );
     };
   }, []);
@@ -122,6 +142,14 @@ export default function POS() {
         <DailyNotice
           onClose={() =>
             setIsDailyNoticeOpen(false)
+          }
+        />
+      )}
+
+      {isYardFeeOpen && (
+        <YardFeeManager
+          onClose={() =>
+            setIsYardFeeOpen(false)
           }
         />
       )}
