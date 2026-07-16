@@ -219,6 +219,26 @@ export default function Header() {
                   </small>
                 </span>
               </button>
+              <div className="header-menu-divider" />
+
+<button
+  type="button"
+  role="menuitem"
+  onClick={() =>
+    openWindow("open-sales")
+  }
+>
+  <span className="header-menu-icon">
+    🧾
+  </span>
+
+  <span>
+    <strong>Sales</strong>
+    <small>
+      Review sales, invoices and payment status
+    </small>
+  </span>
+</button>
             </div>
           )}
         </div>

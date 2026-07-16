@@ -80,3 +80,30 @@ overflow:hidden;
 .yard-fee-trigger:hover {
   background: #f1f5f9;
 }
+
+.complete-sale-button {
+  width: 100%;
+  min-height: 48px;
+
+  margin-top: 18px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.complete-sale-button:hover {
+  background: #1d4ed8;
+}
+
+.complete-sale-button:active {
+  transform: translateY(1px);
+}

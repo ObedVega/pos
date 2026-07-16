@@ -7,6 +7,7 @@ const formatMoney = (value) =>
 export default function Totals({
   items,
   yardFee = 0,
+  onCompleteSale,
 }) {
   const totals = useMemo(() => {
     const itemCount = items.reduce(
@@ -82,6 +83,13 @@ export default function Totals({
           {formatMoney(totals.total)}
         </h1>
       </div>
+      <button
+        type="button"
+        className="complete-sale-button"
+        onClick={onCompleteSale}
+      >
+        Complete Sale
+      </button>
     </div>
   );
 }

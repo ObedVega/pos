@@ -8,6 +8,7 @@ import Cart from "../components/Cart";
 import Calendar from "../components/Calendar";
 import Totals from "../components/Totals";
 import AlertDialog from "../components/AlertDialog/AlertDialog";
+import InvoicePreview from "../components/InvoicePreview/InvoicePreview";
 
 import CustomerManager from "./CustomerManager/CustomerManager";
 import ItemsManager from "./ItemsManager/ItemsManager";
@@ -17,6 +18,9 @@ import Inventory from "./Inventory/Inventory";
 
 import customers from "../data/customers";
 import yardFees from "../data/yardFees";
+import saleService from "../services/saleService";
+import dailyNoticeService from "../services/dailyNoticeService";
+import Sales from "./Sales/Sales";
 
 import "./POS.css";
 
@@ -27,7 +31,9 @@ export default function POS() {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   //const [customerError, setCustomerError] = useState("");
   const [currentView, setCurrentView] = useState("pos"); 
+const [completedSale, setCompletedSale] = useState(null);
 
+  
   const [alert, setAlert] = useState({
     open: false,
     type: "info",
@@ -95,7 +101,11 @@ export default function POS() {
       : 0;
   }, [subtotal, cartItems.length]);
 
+  const tax = 0;
 
+  const total = useMemo(() => {
+    return subtotal + yardFee + tax;
+  }, [subtotal, yardFee]);
 
   const closeAlert = () => {
   setAlert((currentAlert) => ({
@@ -235,7 +245,124 @@ const handleClearSale = () => {
   setLastScanned(null);
   setSelectedCartItemId(null);
 };
+const handleCompleteSale = () => {
+  if (!selectedCustomer) {
+    showAlert({
+      type: "warning",
+      title: "Customer required",
+      message: "Select customer.",
+    });
 
+    return;
+  }
+
+  if (cartItems.length === 0) {
+    showAlert({
+      type: "warning",
+      title: "Items required",
+      message: "Add at least one item.",
+    });
+
+    return;
+  }
+
+  showConfirmation({
+    type: "warning",
+    title: "Complete sale?",
+    message:
+      `Save this sale for ${selectedCustomer.name} ` +
+      `with a balance due of $${total.toFixed(2)}?`,
+    confirmText: "Complete sale",
+    cancelText: "Continue editing",
+
+    onConfirm: async () => {
+
+      try {
+              const dailyNoticeRecord = await dailyNoticeService.get();
+        const sale = await saleService.createSale({
+          customer: selectedCustomer,
+          items: cartItems,
+          subtotal,
+          yardFee,
+          tax,
+          total,
+          dailyNotice: dailyNoticeRecord.notice,
+        });
+
+        handleClearSale();
+        setSelectedCustomerId("");
+
+        showConfirmation({
+          type: "success",
+          title: "Sale completed",
+          message:
+            `${sale.invoiceNumber} was saved successfully. ` +
+            "Would you like to view the invoice now?",
+          confirmText: "View invoice",
+          cancelText: "Close",
+          onConfirm: () => {
+            setCompletedSale(sale);
+          },
+        });
+      } catch (error) {
+        console.error("Could not complete sale:", error);
+
+        showAlert({
+          type: "error",
+          title: "Sale error",
+          message:
+            error.message ||
+            "The sale could not be completed.",
+        });
+      }
+    },
+  });
+};
+
+const handlePrintInvoice = async () => {
+  if (!completedSale) {
+    return;
+  }
+
+  try {
+    window.print();
+
+    await saleService.markAsPrinted(
+      completedSale.id
+    );
+
+    setCompletedSale((currentSale) => ({
+      ...currentSale,
+      deliveryStatus: "PRINTED",
+      printedAt: new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error("Could not print invoice:", error);
+
+    showAlert({
+      type: "error",
+      title: "Print error",
+      message: "The invoice could not be printed.",
+    });
+  }
+};
+
+const handleEmailInvoice = () => {
+  if (!completedSale) {
+    return;
+  }
+
+  showAlert({
+    type: "info",
+    title: "Email invoice",
+    message:
+      "Email delivery will be connected after the invoice is saved in SQLite.",
+  });
+};
+
+const handleCloseInvoice = () => {
+  setCompletedSale(null);
+};
   useEffect(() => {
     const handleOpenCustomerManager = () => {
       setIsCustomerManagerOpen(true);
@@ -256,7 +383,9 @@ const handleClearSale = () => {
     const handleOpenInventory = () => {
       setCurrentView("inventory");
     };
-
+    const handleOpenSales = () => {
+      setCurrentView("sales");
+    };
 
     window.addEventListener(
       "open-customer-manager",
@@ -283,6 +412,11 @@ const handleClearSale = () => {
       handleOpenInventory
     );
 
+    window.addEventListener(
+      "open-sales",
+      handleOpenSales
+    );
+
     return () => {
       window.removeEventListener(
         "open-inventory",
@@ -307,6 +441,10 @@ const handleClearSale = () => {
       window.removeEventListener(
         "open-yard-fees",
         handleOpenYardFees
+      );
+      window.removeEventListener(
+        "open-sales",
+        handleOpenSales
       );
     };
   }, []);
@@ -352,6 +490,13 @@ const handleCustomerChange = (newCustomerId) => {
         />
       );
     }
+    if (currentView === "sales") {
+  return (
+    <Sales
+      onBack={() => setCurrentView("pos")}
+    />
+  );
+}
   return (
     <div className="pos">
       <Header />
@@ -391,6 +536,7 @@ const handleCustomerChange = (newCustomerId) => {
           <Totals 
             items={cartItems}
             yardFee={yardFee}
+            onCompleteSale={handleCompleteSale}
           />
         </div>
       </div>
@@ -426,7 +572,12 @@ const handleCustomerChange = (newCustomerId) => {
           }
         />
       )}
-
+      <InvoicePreview
+        sale={completedSale}
+        onClose={handleCloseInvoice}
+        onPrint={handlePrintInvoice}
+        onEmail={handleEmailInvoice}
+      />
       <AlertDialog
         open={alert.open}
         type={alert.type}
