@@ -1,55 +1,218 @@
-import React, { useState } from "react";
-import "./UPCInput.css";
-import products from "../data/products";
+import React, { useEffect, useRef, useState } from "react";
 
-export default function UPCInput() {
+import "./UPCInput.css";
+import productService from "../services/productService";
+
+export default function UPCInput({
+  itemCount,
+  onAddItem,
+  onRemoveItem,
+  onClearSale,
+  onShowAlert,
+}) {
   const [activeTab, setActiveTab] = useState("upc");
+  const [products, setProducts] = useState([]);
+
+  const [quantity, setQuantity] = useState(1);
+  const [upc, setUPC] = useState("");
+  const [selectedProductUPC, setSelectedProductUPC] =
+    useState("");
+
+ 
 
   const [priceCheckUPC, setPriceCheckUPC] = useState("");
-  const [priceCheckProduct, setPriceCheckProduct] = useState(null);
-  const [priceCheckMessage, setPriceCheckMessage] = useState(
-    "Scan or enter a UPC to view the current price."
+  const [priceCheckProduct, setPriceCheckProduct] =
+    useState(null);
+
+  const [priceCheckMessage, setPriceCheckMessage] =
+    useState(
+      "Scan or enter a UPC to view the current price."
+    );
+
+  const upcInputRef = useRef(null);
+  const priceInputRef = useRef(null);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const result = await productService.getAll();
+        setProducts(result);
+      } catch (error) {
+        console.error("Could not load products:", error);
+        onShowAlert({
+          type: "error",
+          title: "Products unavailable",
+          message: "Could not load the product list.",
+        });
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "upc") {
+      window.setTimeout(() => {
+        upcInputRef.current?.focus();
+      }, 0);
+    }
+
+    if (activeTab === "price") {
+      window.setTimeout(() => {
+        priceInputRef.current?.focus();
+      }, 0);
+    }
+  }, [activeTab]);
+
+  const clearProductInputs = () => {
+    setUPC("");
+    setSelectedProductUPC("");
+    setQuantity(1);
+
+    window.setTimeout(() => {
+      upcInputRef.current?.focus();
+    }, 0);
+  };
+
+  const findSelectedProduct = async () => {
+    const normalizedUPC = upc.trim();
+
+    if (normalizedUPC) {
+      return productService.getByUPC(normalizedUPC);
+    }
+
+    if (selectedProductUPC) {
+      return productService.getByUPC(
+        selectedProductUPC
+      );
+    }
+
+    return null;
+  };
+
+const handleAdd = async () => {
+  const hasUPC = upc.trim() !== "";
+  const hasSelectedProduct =
+    selectedProductUPC !== "";
+
+  if (!hasUPC && !hasSelectedProduct) {
+    onShowAlert({
+      type: "warning",
+      title: "Item required",
+      message: "Select item.",
+    });
+
+    return;
+  }
+
+  const safeQuantity = Math.max(
+    1,
+    Math.floor(Number(quantity) || 1)
   );
 
-  const handlePriceCheck = (value) => {
-    const normalizedUPC = value.trim();
+  const product = await findSelectedProduct();
 
+  if (!product) {
+    onShowAlert({
+      type: "error",
+      title: "Product not found",
+      message: hasUPC
+        ? "No product was found for that UPC."
+        : "Select item.",
+    });
+
+    return;
+  }
+
+  const wasAdded = onAddItem(
+    product,
+    safeQuantity
+  );
+
+  if (!wasAdded) {
+    return;
+  }
+
+  clearProductInputs();
+};
+  const handleUPCKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleAdd();
+    }
+  };
+
+const handleRemove = () => {
+  const removed = onRemoveItem();
+
+  if (!removed) {
+    onShowAlert({
+      type: "warning",
+      title: "Item required",
+      message:
+        "Select an item in the cart before removing it.",
+    });
+  }
+};
+
+const handleClearSale = () => {
+  if (itemCount === 0) {
+    clearProductInputs();
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Clear every item from the current sale?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  onClearSale();
+  clearProductInputs();
+};
+
+  const handlePriceCheck = async (value) => {
     setPriceCheckUPC(value);
+
+    const normalizedUPC = value.trim();
 
     if (!normalizedUPC) {
       setPriceCheckProduct(null);
       setPriceCheckMessage(
         "Scan or enter a UPC to view the current price."
       );
+
       return;
     }
 
-    const foundProduct = products.find(
-      (product) => product.upc === normalizedUPC
-    );
+    const product =
+      await productService.getByUPC(normalizedUPC);
 
-    if (foundProduct) {
-      setPriceCheckProduct(foundProduct);
+    if (product) {
+      setPriceCheckProduct(product);
       setPriceCheckMessage("Product found.");
-    } else {
-      setPriceCheckProduct(null);
-      setPriceCheckMessage("No product was found for this UPC.");
+      return;
     }
-  };
 
-  const handlePriceCheckKeyDown = (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handlePriceCheck(priceCheckUPC);
-    }
+    setPriceCheckProduct(null);
+    setPriceCheckMessage(
+      "No product was found for this UPC."
+    );
   };
 
   const clearPriceCheck = () => {
     setPriceCheckUPC("");
     setPriceCheckProduct(null);
+
     setPriceCheckMessage(
       "Scan or enter a UPC to view the current price."
     );
+
+    window.setTimeout(() => {
+      priceInputRef.current?.focus();
+    }, 0);
   };
 
   return (
@@ -57,7 +220,9 @@ export default function UPCInput() {
       <div className="upc-tabs">
         <button
           type="button"
-          className={`upc-tab ${activeTab === "upc" ? "active" : ""}`}
+          className={`upc-tab ${
+            activeTab === "upc" ? "active" : ""
+          }`}
           onClick={() => setActiveTab("upc")}
         >
           UPC Input
@@ -65,7 +230,9 @@ export default function UPCInput() {
 
         <button
           type="button"
-          className={`upc-tab ${activeTab === "price" ? "active" : ""}`}
+          className={`upc-tab ${
+            activeTab === "price" ? "active" : ""
+          }`}
           onClick={() => setActiveTab("price")}
         >
           Price Check
@@ -75,28 +242,43 @@ export default function UPCInput() {
       {activeTab === "upc" && (
         <div className="tab-content">
           <div className="quantity-section">
-            <label htmlFor="quantity">Quantity</label>
+            <div>
+              <label htmlFor="quantity">
+                Quantity
+              </label>
 
-            <input
-              id="quantity"
-              className="qty-input"
-              type="number"
-              defaultValue="1"
-              min="1"
-            />
+              <input
+                id="quantity"
+                className="qty-input"
+                type="number"
+                value={quantity}
+                min="1"
+                step="1"
+                onChange={(event) =>
+                  setQuantity(event.target.value)
+                }
+              />
+            </div>
           </div>
 
           <fieldset className="select-item-group">
             <legend>Select Item</legend>
 
             <div className="field">
-              <label htmlFor="upc">Barcode / UPC</label>
+              <label htmlFor="upc">
+                Barcode / UPC
+              </label>
 
               <input
+                ref={upcInputRef}
                 id="upc"
                 className="upc-input"
                 placeholder="Scan or type UPC..."
-                autoFocus
+                value={upc}
+                onChange={(event) => {
+                  setUPC(event.target.value);
+                }}
+                onKeyDown={handleUPCKeyDown}
               />
             </div>
 
@@ -105,11 +287,21 @@ export default function UPCInput() {
             </div>
 
             <div className="field">
-              <label htmlFor="product">Product</label>
+              <label htmlFor="product">
+                Product
+              </label>
 
               <select
                 id="product"
                 className="product-select"
+                value={selectedProductUPC}
+                onChange={(event) => {
+                  setSelectedProductUPC(
+                    event.target.value
+                  );
+
+                  setUPC("");
+                }}
               >
                 <option value="">
                   Select item only if UPC is unavailable
@@ -120,7 +312,8 @@ export default function UPCInput() {
                     key={product.upc}
                     value={product.upc}
                   >
-                    {product.name} - ${product.price.toFixed(2)}
+                    {product.name} - $
+                    {product.price.toFixed(2)}
                   </option>
                 ))}
               </select>
@@ -128,21 +321,32 @@ export default function UPCInput() {
           </fieldset>
 
           <div className="upc-buttons">
-            <button type="button" className="primary">
-              Add Item
-            </button>
+<button
+  type="button"
+  className="primary"
+  onClick={handleAdd}
+>
+  Add Item
+</button>
 
-            <button type="button">
+            <button
+              type="button"
+              onClick={handleRemove}
+            >
               Remove
             </button>
 
-            <button type="button">
+            <button
+              type="button"
+              onClick={handleClearSale}
+            >
               Clear
             </button>
           </div>
 
+
           <div className="item-count">
-            Item Count: <strong>0</strong>
+            Item Count: <strong>{itemCount}</strong>
           </div>
         </div>
       )}
@@ -155,6 +359,7 @@ export default function UPCInput() {
             </label>
 
             <input
+              ref={priceInputRef}
               id="price-check-upc"
               className="upc-input"
               placeholder="Scan an item to check its price..."
@@ -162,8 +367,6 @@ export default function UPCInput() {
               onChange={(event) =>
                 handlePriceCheck(event.target.value)
               }
-              onKeyDown={handlePriceCheckKeyDown}
-              autoFocus
             />
           </div>
 
@@ -179,7 +382,8 @@ export default function UPCInput() {
                 </strong>
 
                 <strong className="price-check-value">
-                  ${priceCheckProduct.price.toFixed(2)}
+                  $
+                  {priceCheckProduct.price.toFixed(2)}
                 </strong>
 
                 <span className="price-check-upc-value">

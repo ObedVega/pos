@@ -89,6 +89,20 @@ const createApplicationMenu = () => {
         `);
       },
     },
+    {
+      label: "Inventory",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await mainWindow.webContents.executeJavaScript(`
+          window.dispatchEvent(
+            new Event("open-inventory")
+          );
+        `);
+      },
+    },
   ],
 },
     {

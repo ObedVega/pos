@@ -3,16 +3,22 @@ const products  = [
     upc: "004568732112",
     name: "6x6 Clear Container (25 Pack)",
     price: 4.20,
+    stock: 120,
+    minimumStock: 20,
   },
   {
     upc: "004568732113",
     name: "8x8 Clear Container (25 Pack)",
     price: 5.95,
+    stock: 90,
+    minimumStock: 20,    
   },
   {
     upc: "004568732114",
     name: "9x9 Foam Container",
     price: 7.25,
+    stock: 100,
+    minimumStock: 20,    
   },
   {
     upc: "004568732115",

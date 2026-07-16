@@ -1,37 +1,38 @@
 import React from "react";
 import "./LastScanned.css";
 
-export default function LastScanned() {
+export default function LastScanned({ product }) {
+  return (
+    <div className="last-product">
+      <span className="title">
+        Last Scanned Product
+      </span>
 
-    return (
+      {product ? (
+        <>
+          <div className="product-name">
+            📦 {product.name}
+          </div>
 
-        <div className="last-product">
-
-            <span className="title">
-                Last Scanned Product
+          <div className="product-info">
+            <span>
+              UPC: {product.upc}
             </span>
 
-            <div className="product-name">
+            <span>
+              Qty: {product.quantity}
+            </span>
 
-                📦 6x6 Clear Container (25 Pack)
-
-            </div>
-
-            <div className="product-info">
-
-                <span>
-                    UPC:
-                    004568732112
-                </span>
-
-                <span className="price">
-                    $4.20
-                </span>
-
-            </div>
-
+            <span className="price">
+              ${Number(product.price).toFixed(2)}
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className="last-product-empty">
+          No products scanned yet.
         </div>
-
-    );
-
+      )}
+    </div>
+  );
 }

@@ -1,12 +1,18 @@
 import products from "../data/products";
 
-export const productService = {
+const normalizeUPC = (upc) => String(upc ?? "").trim();
+
+const productService = {
   async getAll() {
-    return products;
+    return [...products];
   },
 
   async getByUPC(upc) {
-    const normalizedUPC = String(upc ?? "").trim();
+    const normalizedUPC = normalizeUPC(upc);
+
+    if (!normalizedUPC) {
+      return null;
+    }
 
     return (
       products.find(
@@ -14,12 +20,6 @@ export const productService = {
       ) ?? null
     );
   },
-
-  async getById(id) {
-    return (
-      products.find(
-        (product) => String(product.id) === String(id)
-      ) ?? null
-    );
-  },
 };
+
+export default productService;

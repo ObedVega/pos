@@ -1,5 +1,6 @@
 .customer-card {
   width: 100%;
+ /* height: 385px;*/
   box-sizing: border-box;
 
   display: flex;
@@ -38,7 +39,7 @@
   box-sizing: border-box;
 
   padding: 0 12px;
-
+ 
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 7px;
@@ -48,7 +49,20 @@
   font-family: inherit;
   font-size: 14px;
 }
+.customer-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 
+  padding-right: 42px;
+
+  background-color: #fff;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
 .customer-search:focus,
 .customer-select:focus {
   border-color: #2563eb;
@@ -64,9 +78,9 @@
 }
 
 .customer-details-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 
   margin-bottom: 14px;
@@ -92,20 +106,28 @@
 }
 
 .customer-number-badge {
-  min-width: 54px;
-  height: 54px;
+  min-width: 58px;
+  max-width: 118px;
+  min-height: 54px;
 
   display: flex;
   align-items: center;
   justify-content: center;
+
+  box-sizing: border-box;
+  padding: 8px 10px;
 
   border-radius: 8px;
 
   background: #111827;
   color: #ffffff;
 
-  font-size: 24px;
+  font-size: 15px;
   font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+
+  overflow-wrap: anywhere;
 }
 
 .customer-details-grid {
@@ -146,3 +168,5 @@
   line-height: 1.4;
   text-align: center;
 }
+
+ 
