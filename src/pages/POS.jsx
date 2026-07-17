@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import Header from "../components/Header";
+import Header from "../components/Header/Header";
 import CustomerSelector from "../components/CustomerSelector";
 import UPCInput from "../components/UPCInput";
 import LastScanned from "../components/LastScanned";
@@ -15,11 +15,13 @@ import ItemsManager from "./ItemsManager/ItemsManager";
 import DailyNotice from "./DailyNotice/DailyNotice";
 import YardFeeManager from "./YardFeeManager/YardFeeManager";
 import Inventory from "./Inventory/Inventory";
+import BusinessSettings from "./BusinessSettings/BusinessSettings";
 
 import customers from "../data/customers";
 import yardFees from "../data/yardFees";
 import saleService from "../services/saleService";
 import dailyNoticeService from "../services/dailyNoticeService";
+import businessSettingsService from "../services/businessSettingsService";
 import Sales from "./Sales/Sales";
 
 import "./POS.css";
@@ -70,6 +72,8 @@ const [completedSale, setCompletedSale] = useState(null);
     isYardFeeOpen,
     setIsYardFeeOpen,
   ] = useState(false);
+
+  const [isBusinessSettingsOpen, setIsBusinessSettingsOpen,] = useState(false);
 
   const itemCount = useMemo(() => {
     return cartItems.reduce(
@@ -278,15 +282,47 @@ const handleCompleteSale = () => {
     onConfirm: async () => {
 
       try {
-              const dailyNoticeRecord = await dailyNoticeService.get();
-        const sale = await saleService.createSale({
-          customer: selectedCustomer,
-          items: cartItems,
-          subtotal,
-          yardFee,
-          tax,
-          total,
-          dailyNotice: dailyNoticeRecord.notice,
+          const dailyNoticeRecord = await dailyNoticeService.get();
+          const businessSettings = await businessSettingsService.get();
+          const sale = await saleService.createSale({
+            customer: selectedCustomer,
+            items: cartItems,
+            subtotal,
+            yardFee,
+            tax,
+            total,
+            dailyNotice: dailyNoticeRecord.notice || "",
+            businessName: businessSettings.businessName,
+            businessSubtitle: businessSettings.businessSubtitle,
+            businessLogoPath: businessSettings.logoPath,
+            businessLogoUrl: businessSettings.logoUrl,
+            businessAddressLine1:
+  businessSettings.addressLine1,
+
+businessAddressLine2:
+  businessSettings.addressLine2,
+
+businessCity:
+  businessSettings.city,
+
+businessState:
+  businessSettings.state,
+
+businessZipCode:
+  businessSettings.zipCode,
+
+businessPhone:
+  businessSettings.phone,
+businessPermitNumber:
+  businessSettings.permitNumber,
+businessEmail:
+  businessSettings.email,
+
+businessWebsite:
+  businessSettings.website,
+
+paymentTerms:
+  businessSettings.paymentTerms,
         });
 
         handleClearSale();
@@ -379,7 +415,9 @@ const handleCloseInvoice = () => {
     const handleOpenYardFees = () => {
       setIsYardFeeOpen(true);
     };
-
+const handleOpenBusinessSettings = () => {
+  setIsBusinessSettingsOpen(true);
+};
     const handleOpenInventory = () => {
       setCurrentView("inventory");
     };
@@ -406,7 +444,10 @@ const handleCloseInvoice = () => {
       "open-yard-fees",
       handleOpenYardFees
     );
-
+window.addEventListener(
+  "open-business-settings",
+  handleOpenBusinessSettings
+);
     window.addEventListener(
       "open-inventory",
       handleOpenInventory
@@ -442,6 +483,10 @@ const handleCloseInvoice = () => {
         "open-yard-fees",
         handleOpenYardFees
       );
+      window.removeEventListener(
+  "open-business-settings",
+  handleOpenBusinessSettings
+);
       window.removeEventListener(
         "open-sales",
         handleOpenSales
@@ -572,6 +617,13 @@ const handleCustomerChange = (newCustomerId) => {
           }
         />
       )}
+      {isBusinessSettingsOpen && (
+  <BusinessSettings
+    onClose={() =>
+      setIsBusinessSettingsOpen(false)
+    }
+  />
+)}
       <InvoicePreview
         sale={completedSale}
         onClose={handleCloseInvoice}

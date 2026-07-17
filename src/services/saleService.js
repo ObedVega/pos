@@ -11,15 +11,31 @@ const generateSaleId = () => {
 };
 
 const saleService = {
-  async createSale({
-    customer,
-    items,
-    subtotal,
-    yardFee,
-    tax,
-    total,
-    dailyNotice,
-  }) {
+async createSale({
+  customer,
+  items,
+  subtotal,
+  yardFee,
+  tax,
+  total,
+  dailyNotice,
+
+  businessName,
+  businessSubtitle,
+  businessLogoPath,
+  businessLogoUrl,
+
+  businessAddressLine1,
+  businessAddressLine2,
+  businessCity,
+  businessState,
+  businessZipCode,
+  businessPhone,
+  businessPermitNumber,
+  businessEmail,
+  businessWebsite,
+  paymentTerms,
+}) {
     if (!customer) {
       throw new Error("Customer is required.");
     }
@@ -27,7 +43,6 @@ const saleService = {
     if (!Array.isArray(items) || items.length === 0) {
       throw new Error("At least one item is required.");
     }
-
 const sale = {
   id: generateSaleId(),
   invoiceNumber: generateInvoiceNumber(),
@@ -55,10 +70,64 @@ const sale = {
 
   dailyNotice: String(dailyNotice ?? ""),
 
+  businessName: String(
+    businessName || "Chiquita Catering"
+  ),
+
+  businessSubtitle: String(
+    businessSubtitle ||
+    "Warehouse Management System"
+  ),
+
+  businessLogoPath: String(
+    businessLogoPath || ""
+  ),
+
+  businessLogoUrl: String(
+    businessLogoUrl || ""
+  ),
+businessAddressLine1: String(
+  businessAddressLine1 || ""
+),
+
+businessAddressLine2: String(
+  businessAddressLine2 || ""
+),
+
+businessCity: String(
+  businessCity || ""
+),
+
+businessState: String(
+  businessState || ""
+),
+
+businessZipCode: String(
+  businessZipCode || ""
+),
+
+businessPhone: String(
+  businessPhone || ""
+),
+businessPermitNumber: String(
+  businessPermitNumber || ""
+),
+businessEmail: String(
+  businessEmail || ""
+),
+
+businessWebsite: String(
+  businessWebsite || ""
+),
+
+paymentTerms: String(
+  paymentTerms || "Due upon receipt"
+),
   amountPaid: 0,
   balanceDue: Number(total),
 
   createdAt: new Date().toISOString(),
+  dueDate: new Date().toISOString(),
   paidAt: null,
 };
     sales.push(sale);

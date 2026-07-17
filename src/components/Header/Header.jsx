@@ -90,12 +90,7 @@ export default function Header() {
         <span>Warehouse Management System</span>
       </div>
 
-      <div className="header-center">
-        <input
-          type="text"
-          placeholder="Global Search..."
-        />
-      </div>
+
 
       <div className="header-actions">
         <div
@@ -164,7 +159,44 @@ export default function Header() {
                   <small>Manage products and prices</small>
                 </span>
               </button>
+<div className="header-menu-divider" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() =>
+                  openWindow("open-inventory")
+                }
+              >
+                <span className="header-menu-icon">
+                  📊
+                </span>
 
+                <span>
+                  <strong>Inventory</strong>
+                  <small>
+                    Review stock and inventory status
+                  </small>
+                </span>
+              </button>
+
+<button
+  type="button"
+  role="menuitem"
+  onClick={() =>
+    openWindow("open-sales")
+  }
+>
+  <span className="header-menu-icon">
+    🧾
+  </span>
+
+  <span>
+    <strong>Sales</strong>
+    <small>
+      Review sales, invoices and payment status
+    </small>
+  </span>
+</button>
               <div className="header-menu-divider" />
 
               <button
@@ -200,45 +232,26 @@ export default function Header() {
                   <small>Edit the daily notice</small>
                 </span>
               </button>
-<div className="header-menu-divider" />
               <button
-                type="button"
-                role="menuitem"
-                onClick={() =>
-                  openWindow("open-inventory")
-                }
-              >
-                <span className="header-menu-icon">
-                  📊
-                </span>
-
-                <span>
-                  <strong>Inventory</strong>
-                  <small>
-                    Review stock and inventory status
-                  </small>
-                </span>
-              </button>
-              <div className="header-menu-divider" />
-
-<button
   type="button"
   role="menuitem"
   onClick={() =>
-    openWindow("open-sales")
+    openWindow("open-business-settings")
   }
 >
   <span className="header-menu-icon">
-    🧾
+    ⚙️
   </span>
 
   <span>
-    <strong>Sales</strong>
+    <strong>Business Settings</strong>
+
     <small>
-      Review sales, invoices and payment status
+      Configure business information and logo
     </small>
   </span>
 </button>
+
             </div>
           )}
         </div>

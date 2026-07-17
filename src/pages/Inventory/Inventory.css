@@ -51,30 +51,18 @@
   text-transform: uppercase;
 }
 
-.inventory-back-button {
-  margin-bottom: 12px;
-  padding: 0;
+.inventory-back-button  {
+  height: 40px;
 
-  background: transparent;
-  border: 0;
+  padding: 0 16px;
 
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+
+  background: #ffffff;
   color: #2563eb;
-  font-size: 13px;
-  font-weight: 700;
 
-  cursor: pointer;
-}
-
-.inventory-primary-button {
-  min-width: 130px;
-  height: 42px;
-
-  border: 0;
-  border-radius: 7px;
-
-  background: #2563eb;
-  color: #ffffff;
-
+  font-family: inherit;
   font-size: 14px;
   font-weight: 700;
 
@@ -82,8 +70,11 @@
 }
 
 .inventory-primary-button:hover {
-  background: #1d4ed8;
+  background: #eff6ff;
+  border-color: #93c5fd;
 }
+
+ 
 
 .inventory-summary {
   display: grid;

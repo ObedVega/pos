@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-import Header from "../../components/Header";
 import InvoicePreview from "../../components/InvoicePreview/InvoicePreview";
 import ReceivePayment from "../../components/ReceivePayment/ReceivePayment";
 
@@ -86,9 +85,6 @@ const handleConfirmPayment = async ({
 
   return (
     <div className="sales-page">
-
-      <Header />
-
       <div className="sales-container">
 
         <div className="sales-toolbar">
