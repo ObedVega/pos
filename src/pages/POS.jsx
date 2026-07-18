@@ -17,7 +17,7 @@ import YardFeeManager from "./YardFeeManager/YardFeeManager";
 import Inventory from "./Inventory/Inventory";
 import BusinessSettings from "./BusinessSettings/BusinessSettings";
 
-import customers from "../data/customers";
+import customerService from "../services/customerService";
 import yardFees from "../data/yardFees";
 import saleService from "../services/saleService";
 import dailyNoticeService from "../services/dailyNoticeService";
@@ -30,8 +30,8 @@ export default function POS() {
   const [cartItems, setCartItems] = useState([]);
   const [lastScanned, setLastScanned] = useState(null);
   const [selectedCartItemId, setSelectedCartItemId] = useState(null);
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  //const [customerError, setCustomerError] = useState("");
+const [selectedCustomerId, setSelectedCustomerId] = useState("");
+const [customers, setCustomers] = useState([]);
   const [currentView, setCurrentView] = useState("pos"); 
 const [completedSale, setCompletedSale] = useState(null);
 
@@ -46,7 +46,28 @@ const [completedSale, setCompletedSale] = useState(null);
     showCancel: false,
     onConfirm: null,
   });
+useEffect(() => {
+  const loadCustomers = async () => {
+    try {
+      const customerRecords = await customerService.getAll();
 
+      setCustomers(
+        Array.isArray(customerRecords)
+          ? customerRecords
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Could not load customers:",
+        error
+      );
+
+      setCustomers([]);
+    }
+  };
+
+  loadCustomers();
+}, []);
   const selectedCustomer =
     customers.find(
       (customer) =>
@@ -547,19 +568,21 @@ const handleCustomerChange = (newCustomerId) => {
       <Header />
 
       <div className="pos-body">
-        <div className="left-column">
-<CustomerSelector
-  selectedCustomerId={selectedCustomerId}
-  onCustomerChange={handleCustomerChange}
-/>
-          <UPCInput
-            itemCount={itemCount}
-            onAddItem={handleAddItem}
-            onRemoveItem={handleRemoveItem}
-            onClearSale={handleClearSale}
-            onShowAlert={showAlert}
-          />
-        </div>
+<div className="left-column">
+  <CustomerSelector
+    customers={customers}
+    selectedCustomerId={selectedCustomerId}
+    onCustomerChange={handleCustomerChange}
+  />
+
+  <UPCInput
+    itemCount={itemCount}
+    onAddItem={handleAddItem}
+    onRemoveItem={handleRemoveItem}
+    onClearSale={handleClearSale}
+    onShowAlert={showAlert}
+  />
+</div>
 
         <div className="last-area">
           <LastScanned product={lastScanned} />

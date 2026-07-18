@@ -1,7 +1,18 @@
+const rules = require("./webpack.rules");
+
+rules.push({
+  test: /\.sql$/,
+  type: "asset/source",
+});
+
 module.exports = {
   entry: "./src/main.js",
 
   module: {
-    rules: require("./webpack.rules"),
+    rules,
+  },
+
+  resolve: {
+    extensions: [".js", ".json"],
   },
 };

@@ -9,13 +9,27 @@ const {
 const fs = require("node:fs");
 const path = require("node:path");
 
+const database = require("./database/database");
+const productRepository = require("./database/repositories/productRepository");
+const productsSeed = require("./database/seeds/productsSeed");
+const customerRepository = require("./database/repositories/customerRepository");
+const customersSeed = require("./database/seeds/customersSeed");
+const dailyNoticeRepository = require("./database/repositories/dailyNoticeRepository");
+const dailyNoticeSeed = require("./database/seeds/dailyNotice");
 
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
 
 let mainWindow;
-
+try {
+  const { DatabaseSync } = require("node:sqlite");
+  console.log("✅ node:sqlite disponible");
+} catch (e) {
+  console.error("❌ node:sqlite NO disponible");
+  console.error(e);
+  app.quit();
+}
 const createApplicationMenu = () => {
   const template = [
     {
@@ -153,18 +167,157 @@ const createApplicationMenu = () => {
         { role: "close" },
       ],
     },
+    {
+  label: "Help",
+  submenu: [
+    {
+      label: "Keyboard Shortcuts",
+      accelerator: "F1",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await dialog.showMessageBox(mainWindow, {
+          type: "info",
+          title: "Keyboard Shortcuts",
+          message: "Chiquita Catering POS",
+          detail: [
+            "Ctrl + N              New Sale",
+            "Ctrl + Shift + C      Customers",
+            "Ctrl + Shift + I      Items",
+            "Ctrl + Shift + D      Daily Notice",
+            "Ctrl + Shift + B      Business Settings",
+            "Ctrl + Shift + Y      Yard Fees",
+            "F1                    Keyboard Shortcuts",
+            "Ctrl + Q              Exit",
+          ].join("\n"),
+          buttons: ["Close"],
+          defaultId: 0,
+          noLink: true,
+        });
+      },
+    },
+    {
+      label: "System Information",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await dialog.showMessageBox(mainWindow, {
+          type: "info",
+          title: "System Information",
+          message: "Chiquita Catering POS",
+          detail: [
+            `Application version: ${app.getVersion()}`,
+            `Electron version: ${process.versions.electron}`,
+            `Chrome version: ${process.versions.chrome}`,
+            `Node.js version: ${process.versions.node}`,
+            `Operating system: ${process.platform}`,
+            `Architecture: ${process.arch}`,
+          ].join("\n"),
+          buttons: ["Close"],
+          defaultId: 0,
+          noLink: true,
+        });
+      },
+    },
+    {
+      label: "User Guide",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await dialog.showMessageBox(mainWindow, {
+          type: "info",
+          title: "User Guide",
+          message: "Chiquita Catering POS User Guide",
+          detail: [
+            "1. Select a customer.",
+            "2. Scan or enter the product UPC.",
+            "3. Enter the quantity.",
+            "4. Press Add Item.",
+            "5. Review the sale summary.",
+            "6. Press Complete Sale.",
+          ].join("\n"),
+          buttons: ["Close"],
+          defaultId: 0,
+          noLink: true,
+        });
+      },
+    },
+    { type: "separator" },
+    {
+      label: "About",
+      click: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        await dialog.showMessageBox(mainWindow, {
+          type: "info",
+          title: "About Chiquita Catering POS",
+          message: "Chiquita Catering POS",
+          detail: [
+            `Version ${app.getVersion()}`,
+            "",
+            "Warehouse Management System",
+            "",
+            "Designed and developed by Obed Vega.",
+            "",
+            "Point of sale, customer, inventory",
+            "and invoice management software.",
+            "",
+            "© 2026 Chiquita Catering",
+          ].join("\n"),
+          buttons: ["Close"],
+          defaultId: 0,
+          noLink: true,
+        });
+      },
+    },
+    {
+  label: "Contact Support",
+  click: async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+
+    await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Contact Support",
+      message: "Software Support",
+      detail: [
+        "Developed by Obed Vega",
+        "",
+        "Email: vega.obed@gmail.com",
+        "Phone: +526642813146",
+      ].join("\n"),
+      buttons: ["Close"],
+      defaultId: 0,
+      noLink: true,
+    });
+  },
+},
+  ],
+},
   ];
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 };
 
+const iconPath = app.isPackaged
+  ? path.join(process.resourcesPath, "assets", "icon.png")
+  : path.join(__dirname, "../assets/icon.png");
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 900,
-
+    icon: iconPath,
     minWidth: 1200,
     minHeight: 700,
 
@@ -271,6 +424,8 @@ const registerBusinessLogoHandlers = () => {
     };
   });
 };
+
+
 const registerInvoicePdfHandlers = () => {
   ipcMain.handle(
     "invoice:save-pdf",
@@ -339,20 +494,147 @@ const registerInvoicePdfHandlers = () => {
     }
   );
 };
+
+const registerProductHandlers = () => {
+    console.log("REGISTERING PRODUCT/CUSTOMER HANDLERS");
+  ipcMain.handle(
+    "products:get-all",
+    async () => {
+      return productRepository.getAll();
+    }
+  );
+
+
+ipcMain.handle("customers:get-all", () => {
+  console.log("customers:get-all handler called");
+
+  return customerRepository.getAll();
+});
+
+ipcMain.handle(
+  "customers:get-by-id",
+  (_event, customerId) => {
+    return customerRepository.getById(customerId);
+  }
+);
+
+ipcMain.handle(
+  "customers:search",
+  (_event, searchTerm) => {
+    return customerRepository.search(searchTerm);
+  }
+);
+
+ipcMain.handle(
+  "customers:create",
+  (_event, customer) => {
+    return customerRepository.create(customer);
+  }
+);
+
+ipcMain.handle(
+  "customers:update",
+  (_event, customerId, customer) => {
+    return customerRepository.update(
+      customerId,
+      customer
+    );
+  }
+);
+
+ipcMain.handle(
+  "customers:delete",
+  (_event, customerId) => {
+    return customerRepository.delete(customerId);
+  }
+);
+  ipcMain.handle(
+    "products:get-by-upc",
+    async (_event, upc) => {
+      return productRepository.getByUPC(upc);
+    }
+  );
+
+  ipcMain.handle(
+    "products:create",
+    async (_event, product) => {
+      return productRepository.create(
+        product
+      );
+    }
+  );
+
+  ipcMain.handle(
+    "products:update",
+    async (
+      _event,
+      originalUPC,
+      product
+    ) => {
+      return productRepository.update(
+        originalUPC,
+        product
+      );
+    }
+  );
+
+  ipcMain.handle(
+    "products:update-stock",
+    async (_event, upc, newStock) => {
+      return productRepository.updateStock(
+        upc,
+        newStock
+      );
+    }
+  );
+
+  ipcMain.handle(
+    "products:delete",
+    async (_event, upc) => {
+      return productRepository.remove(upc);
+    }
+  );
+  ipcMain.handle("daily-notice:get", () => {
+  return dailyNoticeRepository.get();
+});
+
+ipcMain.handle(
+  "daily-notice:save",
+  (_event, notice) => {
+    return dailyNoticeRepository.save(
+      notice
+    );
+  }
+);
+};
+
 app.whenReady().then(() => {
+  database.initialize(app);
+
+  productRepository.seed(productsSeed);
+customerRepository.seed(customersSeed);
+dailyNoticeRepository.seed(dailyNoticeSeed);
   registerBusinessLogoHandlers();
   registerInvoicePdfHandlers();
+  registerProductHandlers();
+
   createWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (
+      BrowserWindow.getAllWindows().length === 0
+    ) {
       createWindow();
     }
   });
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+      app.quit();
+    }
+
+    app.on("before-quit", () => {
+    database.close();
+  });
 });

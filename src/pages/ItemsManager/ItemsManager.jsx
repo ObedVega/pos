@@ -1,62 +1,79 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import "./ItemsManager.css";
-
-const initialItems = [
-  {
-    id: 1,
-    upc: "0001",
-    name: "Bag of Ice 10lb",
-    category: "Ice",
-    price: "3.99",
-    stock: "120",
-  },
-  {
-    id: 2,
-    upc: "0002",
-    name: "Bottled Water 16oz",
-    category: "Beverages",
-    price: "1.50",
-    stock: "300",
-  },
-  {
-    id: 3,
-    upc: "0003",
-    name: "Propane Tank Exchange",
-    category: "Fuel",
-    price: "24.99",
-    stock: "18",
-  },
-];
+import productService from "../../services/productService";
 
 const emptyForm = {
-  id: "",
   upc: "",
   name: "",
-  category: "",
   price: "",
   stock: "",
+  minimumStock: "",
 };
 
 export default function ItemsManager({ onClose }) {
-  const [items, setItems] = useState(initialItems);
+const [items, setItems] = useState([]);
+const [selectedUPC, setSelectedUPC] =
+  useState(null);
+
+const [isLoading, setIsLoading] =
+  useState(true);
+
+const [isSaving, setIsSaving] =
+  useState(false);
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [mode, setMode] = useState("add");
 
-  const filteredItems = useMemo(() => {
-    const value = search.trim().toLowerCase();
+  useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
 
-    if (!value) {
-      return items;
+      const result =
+        await productService.getAll();
+
+      setItems(
+        Array.isArray(result)
+          ? result
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Could not load products:",
+        error
+      );
+
+      setItems([]);
+
+      window.alert(
+        error?.message ||
+          "Products could not be loaded."
+      );
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return items.filter((item) =>
-      `${item.id} ${item.upc} ${item.name} ${item.category}`
-        .toLowerCase()
-        .includes(value)
-    );
-  }, [items, search]);
+  loadProducts();
+}, []);
+
+const filteredItems = useMemo(() => {
+  const value = search.trim().toLowerCase();
+
+  if (!value) {
+    return items;
+  }
+
+  return items.filter((item) =>
+    `${item.upc} ${item.name}`
+      .toLowerCase()
+      .includes(value)
+  );
+}, [items, search]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -67,90 +84,156 @@ export default function ItemsManager({ onClose }) {
     }));
   };
 
-  const handleAddNew = () => {
-    setSelectedId(null);
-    setMode("add");
-    setForm(emptyForm);
+const handleAddNew = () => {
+  setSelectedUPC(null);
+  setMode("add");
+  setForm(emptyForm);
+};
+
+const handleSelectItem = (item) => {
+  setSelectedUPC(item.upc);
+  setMode("edit");
+
+  setForm({
+    upc: String(item.upc ?? ""),
+    name: item.name ?? "",
+    price: String(item.price ?? ""),
+    stock: String(item.stock ?? ""),
+    minimumStock: String(
+      item.minimumStock ?? ""
+    ),
+  });
+};
+
+const handleSave = async (event) => {
+  event.preventDefault();
+
+  if (
+    !form.upc.trim() ||
+    !form.name.trim()
+  ) {
+    window.alert(
+      "UPC and product name are required."
+    );
+    return;
+  }
+
+  const normalizedProduct = {
+    upc: form.upc.trim(),
+    name: form.name.trim(),
+    price: Number(form.price || 0),
+    stock: Number(form.stock || 0),
+    minimumStock: Number(
+      form.minimumStock || 0
+    ),
   };
 
-  const handleSelectItem = (item) => {
-    setSelectedId(item.id);
+  try {
+    setIsSaving(true);
+
+    let savedProduct;
+
+    if (mode === "add") {
+      savedProduct =
+        await productService.create(
+          normalizedProduct
+        );
+
+      setItems((current) => [
+        ...current,
+        savedProduct,
+      ]);
+    } else {
+      savedProduct =
+        await productService.update(
+          selectedUPC,
+          normalizedProduct
+        );
+
+      setItems((current) =>
+        current.map((item) =>
+          item.upc === selectedUPC
+            ? savedProduct
+            : item
+        )
+      );
+    }
+
+    setSelectedUPC(savedProduct.upc);
     setMode("edit");
 
     setForm({
-      id: String(item.id),
-      upc: item.upc,
-      name: item.name,
-      category: item.category,
-      price: item.price,
-      stock: item.stock,
+      upc: String(savedProduct.upc ?? ""),
+      name: savedProduct.name ?? "",
+      price: String(savedProduct.price ?? ""),
+      stock: String(savedProduct.stock ?? ""),
+      minimumStock: String(
+        savedProduct.minimumStock ?? ""
+      ),
     });
-  };
+  } catch (error) {
+    console.error(
+      "Could not save product:",
+      error
+    );
 
-  const handleSave = (event) => {
-    event.preventDefault();
+    window.alert(
+      error?.message ||
+        "The product could not be saved."
+    );
+  } finally {
+    setIsSaving(false);
+  }
+};
 
-    if (!form.id.trim() || !form.name.trim()) {
-      return;
-    }
+const handleDelete = async () => {
+  if (selectedUPC === null) {
+    return;
+  }
 
-    const normalizedItem = {
-      id: Number(form.id),
-      upc: form.upc.trim(),
-      name: form.name.trim(),
-      category: form.category.trim(),
-      price: form.price.trim(),
-      stock: form.stock.trim(),
-    };
+  const selectedItem = items.find(
+    (item) => item.upc === selectedUPC
+  );
 
-    if (mode === "add") {
-      const idAlreadyExists = items.some(
-        (item) => item.id === normalizedItem.id
+  const confirmed = window.confirm(
+    `Delete item "${selectedItem?.name}"?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const wasDeleted =
+      await productService.delete(
+        selectedUPC
       );
 
-      if (idAlreadyExists) {
-        window.alert("That item number already exists.");
-        return;
-      }
-
-      setItems((current) => [...current, normalizedItem]);
-      setSelectedId(normalizedItem.id);
-      setMode("edit");
-      return;
+    if (!wasDeleted) {
+      throw new Error(
+        "The product could not be deleted."
+      );
     }
 
     setItems((current) =>
-      current.map((item) =>
-        item.id === selectedId ? normalizedItem : item
+      current.filter(
+        (item) => item.upc !== selectedUPC
       )
     );
 
-    setSelectedId(normalizedItem.id);
-  };
-
-  const handleDelete = () => {
-    if (selectedId === null) {
-      return;
-    }
-
-    const selectedItem = items.find(
-      (item) => item.id === selectedId
-    );
-
-    const confirmed = window.confirm(
-      `Delete item "${selectedItem?.name}"?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setItems((current) =>
-      current.filter((item) => item.id !== selectedId)
-    );
-
     handleAddNew();
-  };
+  } catch (error) {
+    console.error(
+      "Could not delete product:",
+      error
+    );
+
+    window.alert(
+      error?.message ||
+        "The product could not be deleted."
+    );
+  }
+};
 
   return (
     <div className="items-manager-overlay" role="presentation">
@@ -198,20 +281,20 @@ export default function ItemsManager({ onClose }) {
               {filteredItems.map((item) => (
                 <button
                   type="button"
-                  key={item.id}
+                  key={item.upc}
                   className={`items-list-item ${
-                    selectedId === item.id ? "selected" : ""
+                    selectedUPC  === item.upc ? "selected" : ""
                   }`}
                   onClick={() => handleSelectItem(item)}
                 >
                   <span className="items-list-number">
-                    {item.id}
+                    {item.upc}
                   </span>
 
                   <span className="items-list-copy">
                     <strong>{item.name}</strong>
                     <small>
-                      {item.category || "—"} · UPC {item.upc || "—"}
+                      Stock: {item.stock} · ${Number(item.price).toFixed(2)}
                     </small>
                   </span>
                 </button>
@@ -239,80 +322,73 @@ export default function ItemsManager({ onClose }) {
             </div>
 
             <form className="items-form" onSubmit={handleSave}>
-              <div className="items-form-grid">
-                <label>
-                  <span>Item number</span>
+<div className="items-form-grid">
+  <label>
+    <span>UPC / SKU</span>
 
-                  <input
-                    name="id"
-                    type="number"
-                    min="1"
-                    value={form.id}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
+    <input
+      name="upc"
+      type="text"
+      value={form.upc}
+      onChange={handleInputChange}
+      required
+      disabled={isSaving}
+    />
+  </label>
 
-                <label>
-                  <span>UPC / SKU</span>
+  <label className="items-form-full">
+    <span>Item name</span>
 
-                  <input
-                    name="upc"
-                    type="text"
-                    value={form.upc}
-                    onChange={handleInputChange}
-                  />
-                </label>
+    <input
+      name="name"
+      type="text"
+      value={form.name}
+      onChange={handleInputChange}
+      required
+      disabled={isSaving}
+    />
+  </label>
 
-                <label className="items-form-full">
-                  <span>Item name</span>
+  <label>
+    <span>Price</span>
 
-                  <input
-                    name="name"
-                    type="text"
-                    value={form.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
+    <input
+      name="price"
+      type="number"
+      step="0.01"
+      min="0"
+      value={form.price}
+      onChange={handleInputChange}
+      disabled={isSaving}
+    />
+  </label>
 
-                <label>
-                  <span>Category</span>
+  <label>
+    <span>Stock</span>
 
-                  <input
-                    name="category"
-                    type="text"
-                    value={form.category}
-                    onChange={handleInputChange}
-                  />
-                </label>
+    <input
+      name="stock"
+      type="number"
+      min="0"
+      value={form.stock}
+      onChange={handleInputChange}
+      disabled={isSaving}
+    />
+  </label>
 
-                <label>
-                  <span>Price</span>
+  <label>
+    <span>Minimum stock</span>
 
-                  <input
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.price}
-                    onChange={handleInputChange}
-                  />
-                </label>
-
-                <label>
-                  <span>Stock</span>
-
-                  <input
-                    name="stock"
-                    type="number"
-                    min="0"
-                    value={form.stock}
-                    onChange={handleInputChange}
-                  />
-                </label>
-              </div>
-
+    <input
+      name="minimumStock"
+      type="number"
+      min="0"
+      value={form.minimumStock}
+      onChange={handleInputChange}
+      disabled={isSaving}
+    />
+  </label>
+</div>
               <footer className="items-form-actions">
                 <button
                   type="button"

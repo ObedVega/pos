@@ -12,12 +12,19 @@
 
 .pos-body {
   flex: 1;
+  min-width: 0;
   min-height: 0;
 
   display: grid;
 
-  grid-template-columns: 260px minmax(0, 1fr) 270px;
-  grid-template-rows: 160px minmax(0, 1fr);
+  grid-template-columns:
+    clamp(250px, 18vw, 300px)
+    minmax(0, 1fr)
+    clamp(260px, 18vw, 300px);
+
+  grid-template-rows:
+    clamp(115px, 15vh, 150px)
+    minmax(0, 1fr);
 
   gap: 18px;
   padding: 18px;
@@ -25,16 +32,55 @@
   overflow: hidden;
 }
 
+/* Left side */
+
 .left-column {
   grid-column: 1;
   grid-row: 1 / 3;
 
+  min-width: 0;
   min-height: 0;
 
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+
   gap: 18px;
+
+  overflow: hidden;
 }
+
+.customer-selector-area {
+  flex: 0 0 auto;
+
+  max-height: 240px;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.customer-selector-area > * {
+  width: 100%;
+  min-width: 0;
+}
+
+.upc-input-area {
+  flex: 1 1 auto;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+.upc-input-area > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Center */
 
 .last-area {
   grid-column: 2;
@@ -42,6 +88,13 @@
 
   min-width: 0;
   min-height: 0;
+
+  overflow: hidden;
+}
+
+.last-area > * {
+  width: 100%;
+  height: 100%;
 }
 
 .cart-area {
@@ -51,6 +104,10 @@
   min-width: 0;
   min-height: 0;
 
+  /*
+   * El scroll debe estar dentro de .cart-body,
+   * no en todo el panel.
+   */
   overflow: hidden;
 }
 
@@ -60,12 +117,21 @@
   min-height: 0;
 }
 
+/* Right side */
+
 .calendar-area {
   grid-column: 3;
   grid-row: 1;
 
   min-width: 0;
   min-height: 0;
+
+  overflow: hidden;
+}
+
+.calendar-area > * {
+  width: 100%;
+  height: 100%;
 }
 
 .totals-area {
@@ -76,4 +142,61 @@
   min-height: 0;
 
   overflow: hidden;
+}
+
+.totals-area > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* Medium-height windows */
+
+@media (max-height: 780px) {
+  .pos-body {
+    grid-template-rows: 110px minmax(0, 1fr);
+
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .left-column {
+    gap: 12px;
+  }
+}
+
+/* Short windows */
+
+@media (max-height: 660px) {
+  .pos-body {
+    grid-template-columns:
+      245px
+      minmax(0, 1fr)
+      250px;
+
+    grid-template-rows: 92px minmax(0, 1fr);
+
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .left-column {
+    gap: 10px;
+  }
+}
+
+/* Narrow windows */
+
+@media (max-width: 1150px) {
+  .pos-body {
+    grid-template-columns:
+      245px
+      minmax(0, 1fr)
+      250px;
+  }
+}
+
+@media (max-height: 700px) {
+  .customer-selector-area {
+    max-height: 190px;
+  }
 }

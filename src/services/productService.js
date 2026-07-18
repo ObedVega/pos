@@ -1,24 +1,47 @@
-import products from "../data/products";
+const ensureElectronAPI = () => {
+  if (!window.electronAPI) {
+    throw new Error(
+      "Electron API is not available."
+    );
+  }
 
-const normalizeUPC = (upc) => String(upc ?? "").trim();
+  return window.electronAPI;
+};
 
 const productService = {
   async getAll() {
-    return [...products];
+    return ensureElectronAPI().getProducts();
   },
 
   async getByUPC(upc) {
-    const normalizedUPC = normalizeUPC(upc);
+    return ensureElectronAPI()
+      .getProductByUPC(upc);
+  },
 
-    if (!normalizedUPC) {
-      return null;
-    }
+  async create(product) {
+    return ensureElectronAPI()
+      .createProduct(product);
+  },
 
-    return (
-      products.find(
-        (product) => product.upc === normalizedUPC
-      ) ?? null
-    );
+  async update(originalUPC, product) {
+    return ensureElectronAPI()
+      .updateProduct(
+        originalUPC,
+        product
+      );
+  },
+
+  async updateStock(upc, newStock) {
+    return ensureElectronAPI()
+      .updateProductStock(
+        upc,
+        newStock
+      );
+  },
+
+  async remove(upc) {
+    return ensureElectronAPI()
+      .deleteProduct(upc);
   },
 };
 

@@ -4,6 +4,7 @@ const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 module.exports = {
   packagerConfig: {
     asar: true,
+    icon: "./assets/icon",
   },
 
   rebuildConfig: {},
@@ -11,7 +12,9 @@ module.exports = {
   makers: [
     {
       name: "@electron-forge/maker-squirrel",
-      config: {},
+      config: {
+          setupIcon: "./assets/icon.ico",
+      },
     },
     {
       name: "@electron-forge/maker-zip",
@@ -48,6 +51,11 @@ module.exports = {
           ],
         },
       },
+    },
+    {
+      name:
+        "@electron-forge/plugin-auto-unpack-natives",
+      config: {},
     },
 
     new FusesPlugin({

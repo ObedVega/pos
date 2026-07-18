@@ -312,8 +312,7 @@ const handleClearSale = () => {
                     key={product.upc}
                     value={product.upc}
                   >
-                    {product.name} - $
-                    {product.price.toFixed(2)}
+                    {product.name}
                   </option>
                 ))}
               </select>

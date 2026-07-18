@@ -107,3 +107,79 @@ overflow:hidden;
 .complete-sale-button:active {
   transform: translateY(1px);
 }
+
+.totals-card h2 {
+  margin-top: 0;
+}
+
+.grand-total h1 {
+  margin-bottom: 0;
+}
+
+@media (max-height: 780px) {
+  .totals-card {
+    padding: 18px;
+  }
+
+  .totals-card h2 {
+    margin-bottom: 18px;
+
+    font-size: 22px;
+  }
+
+  .total-row {
+    margin-bottom: 12px;
+
+    font-size: 16px;
+  }
+
+  .grand-total {
+    padding-top: 16px;
+  }
+
+  .grand-total h1 {
+    margin-top: 7px;
+
+    font-size: 38px;
+  }
+
+  .complete-sale-button {
+    min-height: 42px;
+    margin-top: 12px;
+  }
+}
+
+@media (max-height: 660px) {
+  .totals-card {
+    padding: 14px;
+  }
+
+  .totals-card h2 {
+    margin-bottom: 12px;
+
+    font-size: 20px;
+  }
+
+  .total-row {
+    margin-bottom: 9px;
+
+    font-size: 15px;
+  }
+
+  .grand-total {
+    padding-top: 10px;
+  }
+
+  .grand-total h1 {
+    margin-top: 4px;
+
+    font-size: 32px;
+  }
+
+  .complete-sale-button {
+    min-height: 38px;
+    margin-top: 8px;
+
+    font-size: 13px;
+  }
+}

@@ -1,8 +1,13 @@
 .upc-card {
   width: 100%;
- 
+  height: 100%;
+  min-height: 0;
+
   box-sizing: border-box;
   overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
 
   background: #f8fafc;
   border: 1px solid #dbe1e8;
@@ -59,11 +64,16 @@
 }
 
 .tab-content {
+  flex: 1;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 14px;
-/* height: 419px;*/
-  padding: 18px;
+  gap: 10px;
+
+  padding: 12px;
+
+  overflow: hidden;
 }
 
 .quantity-section {
@@ -178,11 +188,17 @@
 }
 
 .upc-buttons {
+  margin-top: auto;
+
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
+  gap: 8px;
 
+  flex-shrink: 0;
+}
+.item-count {
+  flex-shrink: 0;
+}
 .upc-buttons button,
 .price-check-clear {
   min-width: 0;
@@ -290,4 +306,161 @@
 
   color: #64748b;
   font-size: 12px;
+}
+
+@media (max-height: 780px) {
+  .upc-tab {
+    padding: 10px 14px;
+  }
+
+  .tab-content {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .upc-input,
+  .qty-input,
+  .product-select {
+    height: 38px;
+  }
+
+  .select-item-group {
+    padding: 10px;
+  }
+
+  .divider {
+    margin: 8px 0;
+  }
+
+  .upc-buttons {
+    gap: 7px;
+  }
+
+  .upc-buttons button,
+  .price-check-clear {
+    height: 38px;
+  }
+
+  .item-count {
+    font-size: 14px;
+  }
+
+  .item-count strong {
+    font-size: 17px;
+  }
+}
+
+@media (max-height: 660px) {
+  .upc-tab {
+    padding: 9px 12px;
+
+    font-size: 13px;
+  }
+
+  .tab-content {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .quantity-section label,
+  .field label {
+    margin-bottom: 4px;
+  }
+
+  .upc-input,
+  .qty-input,
+  .product-select {
+    height: 36px;
+  }
+
+  .select-item-group {
+    padding: 8px 10px;
+  }
+
+  .divider {
+    margin: 6px 0;
+  }
+
+  .upc-buttons {
+    gap: 6px;
+  }
+
+  .upc-buttons button,
+  .price-check-clear {
+    height: 36px;
+
+    font-size: 12px;
+  }
+
+  .item-count {
+    padding-top: 0;
+
+    font-size: 13px;
+  }
+
+  .item-count strong {
+    font-size: 15px;
+  }
+}
+
+@media (max-height: 700px) {
+  .upc-tabs {
+    flex-shrink: 0;
+  }
+
+  .upc-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .tab-content {
+    gap: 7px;
+    padding: 9px;
+  }
+
+  .quantity-section {
+    gap: 8px;
+  }
+
+  .quantity-section label,
+  .field label {
+    margin-bottom: 3px;
+    font-size: 11px;
+  }
+
+  .qty-input,
+  .upc-input,
+  .product-select {
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .select-item-group {
+    padding: 6px 9px;
+  }
+
+  .select-item-group legend {
+    font-size: 11px;
+  }
+
+  .divider {
+    margin: 4px 0;
+  }
+
+  .upc-buttons {
+    gap: 5px;
+  }
+
+  .upc-buttons button {
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .item-count {
+    font-size: 12px;
+  }
+
+  .item-count strong {
+    font-size: 14px;
+  }
 }

@@ -38,14 +38,53 @@ align-items:center;
 
 }
 
-.calendar-day{
+.calendar-day {
+  line-height: 0.95;
+}
 
-    font-size:72px;
+.calendar-month {
+  line-height: 1;
+}
 
-    font-weight:700;
+.calendar-year {
+  line-height: 1;
+}
 
-    color:#111827;
+@media (max-height: 780px) {
+  .calendar-title {
+    font-size: 11px;
+  }
 
+  .calendar-day {
+    font-size: 52px;
+  }
+
+  .calendar-month {
+    font-size: 19px;
+  }
+
+  .calendar-year {
+    font-size: 13px;
+  }
+}
+
+@media (max-height: 660px) {
+  .calendar-title {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .calendar-day {
+    font-size: 40px;
+  }
+
+  .calendar-month {
+    font-size: 16px;
+  }
+
+  .calendar-year {
+    font-size: 11px;
+  }
 }
 
 .calendar-month{

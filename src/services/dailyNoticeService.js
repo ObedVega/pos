@@ -1,30 +1,24 @@
-import dailyNoticeData from "../data/dailyNotice";
-
-let currentDailyNotice = {
-  ...dailyNoticeData,
-};
-
 const dailyNoticeService = {
   async get() {
-    return {
-      ...currentDailyNotice,
-    };
+    if (!window.electronAPI?.getDailyNotice) {
+      throw new Error(
+        "Daily notice API is not available."
+      );
+    }
+
+    return window.electronAPI.getDailyNotice();
   },
 
   async save(noticeText) {
-    const normalizedNotice = String(
-      noticeText ?? ""
-    ).trim();
+    if (!window.electronAPI?.saveDailyNotice) {
+      throw new Error(
+        "Daily notice API is not available."
+      );
+    }
 
-    currentDailyNotice = {
-      ...currentDailyNotice,
-      notice: normalizedNotice,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      ...currentDailyNotice,
-    };
+    return window.electronAPI.saveDailyNotice(
+      noticeText
+    );
   },
 };
 

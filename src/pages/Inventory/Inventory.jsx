@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import productService from "../../services/productService";
 import AdjustInventory from "../../components/AdjustInventory/AdjustInventory";
-import products from "../../data/products";
 
 import "./Inventory.css";
 
@@ -10,28 +10,40 @@ export default function Inventory({ onBack }) {
   const [adjustProduct, setAdjustProduct] = useState(null);
 const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
-const [inventoryItems, setInventoryItems] = useState(() =>
-  products.map((product) => {
-    const stock = Number(product.stock ?? 0);
-    const minimumStock = Number(product.minimumStock ?? 10);
+const [inventoryItems, setInventoryItems] = useState([]);
+useEffect(() => {
+  const loadInventory = async () => {
+    try {
+      const products = await productService.getAll();
 
-    let status = "in-stock";
+      const items = products.map((product) => {
+        const stock = Number(product.stock ?? 0);
+        const minimumStock = Number(product.minimumStock ?? 10);
 
-    if (stock <= 0) {
-      status = "out-of-stock";
-    } else if (stock <= minimumStock) {
-      status = "low-stock";
+        let status = "in-stock";
+
+        if (stock <= 0) {
+          status = "out-of-stock";
+        } else if (stock <= minimumStock) {
+          status = "low-stock";
+        }
+
+        return {
+          ...product,
+          stock,
+          minimumStock,
+          status,
+        };
+      });
+
+      setInventoryItems(items);
+    } catch (err) {
+      console.error(err);
     }
+  };
 
-    return {
-      ...product,
-      stock,
-      minimumStock,
-      status,
-    };
-  })
-);
-
+  loadInventory();
+}, []);
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 

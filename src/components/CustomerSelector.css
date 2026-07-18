@@ -169,4 +169,79 @@
   text-align: center;
 }
 
- 
+ @media (max-height: 780px) {
+  .customer-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .customer-search,
+  .customer-select {
+    height: 38px;
+  }
+
+  .customer-empty {
+    padding: 10px;
+  }
+
+  .customer-details {
+    max-height: 135px;
+    overflow-y: auto;
+
+    padding: 10px;
+  }
+
+  .customer-details-header {
+    margin-bottom: 8px;
+  }
+
+  .customer-number-badge {
+    min-height: 42px;
+  }
+
+  .customer-details-grid {
+    gap: 6px;
+  }
+
+  .customer-details-grid div {
+    padding-top: 6px;
+  }
+}
+
+@media (max-height: 660px) {
+  .customer-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .customer-field {
+    gap: 4px;
+  }
+
+  .customer-search,
+  .customer-select {
+    height: 36px;
+  }
+
+  /*
+   * Cuando no hay cliente seleccionado, este mensaje
+   * no es esencial en una ventana de poca altura.
+   */
+  .customer-empty {
+    display: none;
+  }
+
+  .customer-details {
+    max-height: 95px;
+  }
+}
+@media (max-height: 700px) {
+  .customer-selector-area {
+    max-height: 190px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scrollbar-gutter: stable;
+  }
+}

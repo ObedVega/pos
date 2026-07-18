@@ -1,58 +1,61 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./CustomerManager.css";
-
-const initialCustomers = [
-  {
-    id: 14,
-    name: "Bang Tran",
-    truckNumber: "14",
-    phone: "(619) 555-0101",
-    email: "bang@example.com",
-  },
-  {
-    id: 22,
-    name: "Johnson Catering",
-    truckNumber: "22",
-    phone: "(619) 555-0102",
-    email: "johnson@example.com",
-  },
-  {
-    id: 32,
-    name: "Chiquita Truck",
-    truckNumber: "32",
-    phone: "(619) 555-0103",
-    email: "chiquita@example.com",
-  },
-];
+import customerService from "../../services/customerService";
 
 const emptyForm = {
   id: "",
   name: "",
-  truckNumber: "",
+  permitNumber: "",
   phone: "",
   email: "",
 };
 
 export default function CustomerManager({ onClose }) {
-  const [customers, setCustomers] = useState(initialCustomers);
+  const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [mode, setMode] = useState("add");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredCustomers = useMemo(() => {
-    const value = search.trim().toLowerCase();
+useEffect(() => {
+  const loadCustomers = async () => {
+    try {
+      const result = await customerService.getAll();
 
-    if (!value) {
-      return customers;
+      setCustomers(
+        Array.isArray(result)
+          ? result
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Could not load customers:",
+        error
+      );
+
+      setCustomers([]);
     }
+  };
 
-    return customers.filter((customer) =>
-      `${customer.id} ${customer.name} ${customer.truckNumber} ${customer.phone}`
-        .toLowerCase()
-        .includes(value)
-    );
-  }, [customers, search]);
+  loadCustomers();
+}, []);
+
+const filteredCustomers = useMemo(() => {
+  const normalizedSearch = search
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedSearch) {
+    return customers;
+  }
+
+  return customers.filter((customer) =>
+    `${customer.id} ${customer.name} ${customer.permitNumber ?? ""}`
+      .toLowerCase()
+      .includes(normalizedSearch)
+  );
+}, [customers, search]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -70,81 +73,138 @@ export default function CustomerManager({ onClose }) {
   };
 
   const handleSelectCustomer = (customer) => {
+    
     setSelectedId(customer.id);
     setMode("edit");
 
     setForm({
       id: String(customer.id),
       name: customer.name,
-      truckNumber: customer.truckNumber,
+      permitNumber: customer.permitNumber,
       phone: customer.phone,
       email: customer.email,
     });
   };
 
-  const handleSave = (event) => {
-    event.preventDefault();
+const handleSave = async (event) => {
+  event.preventDefault();
 
-    if (!form.id.trim() || !form.name.trim()) {
-      return;
-    }
+  if (!form.name.trim()) {
+    window.alert("Customer name is required.");
+    return;
+  }
 
-    const normalizedCustomer = {
-      id: Number(form.id),
-      name: form.name.trim(),
-      truckNumber: form.truckNumber.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-    };
+  const customerData = {
+    name: form.name.trim(),
+    permitNumber: form.permitNumber.trim(),
+    phone: form.phone.trim(),
+    email: form.email.trim(),
+  };
+
+  try {
+    setIsSaving(true);
+
+    let savedCustomer;
 
     if (mode === "add") {
-      const idAlreadyExists = customers.some(
-        (customer) => customer.id === normalizedCustomer.id
+      // El backend asignará automáticamente el ID.
+      savedCustomer =
+        await customerService.create(customerData);
+
+      setCustomers((current) => [
+        ...current,
+        savedCustomer,
+      ]);
+    } else {
+      // selectedId identifica al cliente.
+      // No permitimos cambiar su número.
+      savedCustomer =
+        await customerService.update(
+          selectedId,
+          customerData
+        );
+
+      setCustomers((current) =>
+        current.map((customer) =>
+          customer.id === selectedId
+            ? savedCustomer
+            : customer
+        )
       );
+    }
 
-      if (idAlreadyExists) {
-        window.alert("That client number already exists.");
-        return;
-      }
+    setSelectedId(savedCustomer.id);
+    setMode("edit");
 
-      setCustomers((current) => [...current, normalizedCustomer]);
-      setSelectedId(normalizedCustomer.id);
-      setMode("edit");
-      return;
+    setForm({
+      id: String(savedCustomer.id),
+      name: savedCustomer.name ?? "",
+      permitNumber:
+        savedCustomer.permitNumber ?? "",
+      phone: savedCustomer.phone ?? "",
+      email: savedCustomer.email ?? "",
+    });
+  } catch (error) {
+    console.error(
+      "Could not save customer:",
+      error
+    );
+
+    window.alert(
+      error?.message ||
+        "The customer could not be saved."
+    );
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+ const handleDelete = async () => {
+  if (selectedId === null) {
+    return;
+  }
+
+  const selectedCustomer = customers.find(
+    (customer) => customer.id === selectedId
+  );
+
+  const confirmed = window.confirm(
+    `Delete customer "${selectedCustomer?.name}"?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const wasDeleted =
+      await customerService.delete(selectedId);
+
+    if (!wasDeleted) {
+      throw new Error(
+        "The customer could not be deleted."
+      );
     }
 
     setCustomers((current) =>
-      current.map((customer) =>
-        customer.id === selectedId ? normalizedCustomer : customer
+      current.filter(
+        (customer) => customer.id !== selectedId
       )
     );
 
-    setSelectedId(normalizedCustomer.id);
-  };
-
-  const handleDelete = () => {
-    if (selectedId === null) {
-      return;
-    }
-
-    const selectedCustomer = customers.find(
-      (customer) => customer.id === selectedId
-    );
-
-    const confirmed = window.confirm(
-      `Delete customer "${selectedCustomer?.name}"?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setCustomers((current) =>
-      current.filter((customer) => customer.id !== selectedId)
-    );
-
     handleAddNew();
-  };
+  } catch (error) {
+    console.error(
+      "Could not delete customer:",
+      error
+    );
+
+    window.alert(
+      error?.message ||
+        "The customer could not be deleted."
+    );
+  }
+};
 
   return (
     <div className="customer-manager-overlay" role="presentation">
@@ -204,7 +264,7 @@ export default function CustomerManager({ onClose }) {
 
                   <span className="customer-list-copy">
                     <strong>{customer.name}</strong>
-                    <small>Truck {customer.truckNumber || "—"}</small>
+                    <small>Permit #{customer.permitNumber || "—"}</small>
                   </span>
                 </button>
               ))}
@@ -236,22 +296,24 @@ export default function CustomerManager({ onClose }) {
                   <span>Client number</span>
 
                   <input
-                    name="id"
-                    type="number"
-                    min="1"
-                    value={form.id}
-                    onChange={handleInputChange}
-                    required
+                    type="text"
+                    value={
+                      mode === "add"
+                        ? "Assigned automatically"
+                        : form.id
+                    }
+                    readOnly
+                    tabIndex={-1}
                   />
                 </label>
 
                 <label>
-                  <span>Truck number</span>
+                  <span>Permit number</span>
 
                   <input
-                    name="truckNumber"
+                    name="permitNumber"
                     type="text"
-                    value={form.truckNumber}
+                    value={form.permitNumber}
                     onChange={handleInputChange}
                   />
                 </label>
@@ -313,8 +375,13 @@ export default function CustomerManager({ onClose }) {
                   <button
                     type="submit"
                     className="customer-save-button"
+                    disabled={isSaving}
                   >
-                    {mode === "add" ? "Add customer" : "Save changes"}
+                    {isSaving
+                      ? "Saving..."
+                      : mode === "add"
+                        ? "Add customer"
+                        : "Save changes"}
                   </button>
                 </div>
               </footer>

@@ -1,28 +1,54 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import customerService from "../services/customerService";
 import "./CustomerSelector.css";
-import customers from "../data/customers";
+
 
 export default function CustomerSelector({
   selectedCustomerId,
   onCustomerChange,
 }) {
   const [search, setSearch] = useState("");
+  const [customers, setCustomers] = useState([]);
 
-  const filteredCustomers = useMemo(() => {
-    const normalizedSearch = search
-      .trim()
-      .toLowerCase();
-
-    if (!normalizedSearch) {
-      return customers;
+useEffect(() => {
+  const loadCustomers = async () => {
+    try {
+      const result = await customerService.getAll();
+      setCustomers(result);
+    } catch (error) {
+      console.error(
+        "Could not load customers:",
+        error
+      );
     }
+  };
 
-    return customers.filter((customer) =>
-      `${customer.id} ${customer.name} ${customer.truckNumber}`
-        .toLowerCase()
-        .includes(normalizedSearch)
-    );
-  }, [search]);
+  loadCustomers();
+}, []);
+const filteredCustomers = useMemo(() => {
+  const normalizedSearch = search
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedSearch) {
+    return customers;
+  }
+
+  return customers.filter((customer) =>
+    `
+      ${customer.id}
+      ${customer.name ?? ""}
+      ${customer.permitNumber ?? ""}
+      ${customer.phone ?? ""}
+    `
+      .toLowerCase()
+      .includes(normalizedSearch)
+  );
+}, [customers, search]);
 
   const selectedCustomer = customers.find(
     (customer) =>
@@ -41,12 +67,13 @@ export default function CustomerSelector({
           id="customer-search"
           className="customer-search"
           type="text"
-          placeholder="Search by name, number or truck..."
+          placeholder="Search by name, customer number or permit..."
           value={search}
           onChange={(event) =>
             setSearch(event.target.value)
           }
         />
+
       </div>
 
    
@@ -56,13 +83,19 @@ export default function CustomerSelector({
     Customer list
   </label>
 
- <select
+<select
   id="customer-select"
   className="customer-select"
   value={selectedCustomerId}
-  onChange={(event) =>
-    onCustomerChange(event.target.value)
+  size={
+    search.trim()
+      ? Math.min(filteredCustomers.length + 1, 6)
+      : 1
   }
+  onChange={(event) => {
+    onCustomerChange(event.target.value);
+    setSearch("");
+  }}
 >
   <option value="">
     Select a customer...
@@ -73,7 +106,7 @@ export default function CustomerSelector({
       key={customer.id}
       value={customer.id}
     >
-      {customer.name} - {customer.id}
+      {customer.name} - Permit {customer.permitNumber || "—"}
     </option>
   ))}
 </select>
@@ -103,9 +136,9 @@ export default function CustomerSelector({
             </div>
 
             <div>
-              <span>Truck number</span>
+              <span>Permit number</span>
               <strong>
-                {selectedCustomer.truckNumber}
+                {selectedCustomer.permitNumber}
               </strong>
             </div>
 

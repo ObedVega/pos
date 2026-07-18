@@ -1,4 +1,4 @@
-const dailyNotice = {
+const dailyNoticeSeed = {
   id: 1,
 
   notice: `Please keep your areas clean. All trash must be thrown away in the trash dumpsters. Any outside trash thrown in our dumpsters will result in a $50 fee. All returns or exchanges will be inspected and must be in the condition purchased. If the item is damaged you will be charged for it.
@@ -12,4 +12,4 @@ Note: We are not responsible for the management and cleanliness of the trucks/bu
   updatedAt: null,
 };
 
-export default dailyNotice;
+export default dailyNoticeSeed;
