@@ -4,21 +4,28 @@ const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 module.exports = {
   packagerConfig: {
     asar: true,
-    icon: "./assets/icon",
+    icon: "./assets/favicon",
   },
 
   rebuildConfig: {},
 
   makers: [
     {
-      name: "@electron-forge/maker-squirrel",
+      name: "@electron-forge/maker-wix",
       config: {
-          setupIcon: "./assets/icon.ico",
+        language: 1033,
+        manufacturer: "POS Chiquita",
+        ui: {
+          chooseDirectory: true,
+        },
       },
     },
     {
-      name: "@electron-forge/maker-zip",
-      platforms: ["darwin"],
+      name: "@electron-forge/maker-dmg",
+      config: {
+        format: "ULFO",
+        icon: "./assets/icon.icns",
+      },
     },
     {
       name: "@electron-forge/maker-deb",
