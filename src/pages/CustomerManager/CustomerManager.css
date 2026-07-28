@@ -366,3 +366,9 @@
   background: #2563eb;
   color: #ffffff;
 }
+
+.customer-field-help {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+}

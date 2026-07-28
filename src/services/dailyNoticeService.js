@@ -16,9 +16,15 @@ const dailyNoticeService = {
       );
     }
 
-    return window.electronAPI.saveDailyNotice(
+    const savedNotice = await window.electronAPI.saveDailyNotice(
       noticeText
     );
+    window.dispatchEvent(
+      new CustomEvent("daily-notice-updated", {
+        detail: savedNotice,
+      })
+    );
+    return savedNotice;
   },
 };
 

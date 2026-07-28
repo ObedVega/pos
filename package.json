@@ -40,6 +40,8 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "exceljs": "^4.4.0",
+    "jsbarcode": "^3.12.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sql.js": "^1.14.1"

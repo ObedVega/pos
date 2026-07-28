@@ -112,9 +112,7 @@ const handleSave = async (event) => {
     !form.upc.trim() ||
     !form.name.trim()
   ) {
-    window.alert(
-      "UPC and product name are required."
-    );
+    window.alert("Product name is required.");
     return;
   }
 
@@ -287,15 +285,13 @@ const handleDelete = async () => {
                   }`}
                   onClick={() => handleSelectItem(item)}
                 >
-                  <span className="items-list-number">
-                    {item.upc}
-                  </span>
-
                   <span className="items-list-copy">
                     <strong>{item.name}</strong>
-                    <small>
-                      Stock: {item.stock} · ${Number(item.price).toFixed(2)}
-                    </small>
+                    <small>UPC: {item.upc}</small>
+                    <span className="items-list-meta">
+                      <span>Stock: <b>{item.stock}</b></span>
+                      <span>${Number(item.price).toFixed(2)}</span>
+                    </span>
                   </span>
                 </button>
               ))}
@@ -324,16 +320,18 @@ const handleDelete = async () => {
             <form className="items-form" onSubmit={handleSave}>
 <div className="items-form-grid">
   <label>
-    <span>UPC / SKU</span>
+    <span>UPC / SKU (optional)</span>
 
     <input
       name="upc"
       type="text"
       value={form.upc}
       onChange={handleInputChange}
-      required
       disabled={isSaving}
     />
+    {mode === "add" && (
+      <small>Leave blank to generate an internal barcode automatically.</small>
+    )}
   </label>
 
   <label className="items-form-full">

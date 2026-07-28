@@ -188,7 +188,27 @@ create(customer) {
     customer.email ?? ""
   ).trim();
 
-  const result = database.run(
+  const suppliedCustomerNumber = String(
+    customer.customerNumber ?? customer.customer_number ?? customer.id ?? ""
+  ).trim();
+
+  let customerNumber = null;
+  if (suppliedCustomerNumber) {
+    customerNumber = Number(suppliedCustomerNumber);
+    if (!Number.isInteger(customerNumber) || customerNumber <= 0) {
+      throw new Error("Client number must be a positive whole number.");
+    }
+
+    const existing = database.get(
+      "SELECT customer_number FROM customers WHERE customer_number = ?",
+      customerNumber
+    );
+    if (existing) {
+      throw new Error(`Client number ${customerNumber} already exists.`);
+    }
+  }
+
+  const result = customerNumber === null ? database.run(
     `
       INSERT INTO customers (
         name,
@@ -199,6 +219,24 @@ create(customer) {
       )
       VALUES (?, ?, ?, ?, ?)
     `,
+    name,
+    permitNumber,
+    truckNumber,
+    phone,
+    email
+  ) : database.run(
+    `
+      INSERT INTO customers (
+        customer_number,
+        name,
+        permit_number,
+        truck_number,
+        phone,
+        email
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    customerNumber,
     name,
     permitNumber,
     truckNumber,

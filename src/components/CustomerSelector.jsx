@@ -106,7 +106,7 @@ const filteredCustomers = useMemo(() => {
       key={customer.id}
       value={customer.id}
     >
-      {customer.name} - Permit {customer.permitNumber || "—"}
+      {customer.name}
     </option>
   ))}
 </select>

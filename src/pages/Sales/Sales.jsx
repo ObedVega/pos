@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import InvoicePreview from "../../components/InvoicePreview/InvoicePreview";
 import ReceivePayment from "../../components/ReceivePayment/ReceivePayment";
@@ -10,6 +10,7 @@ import "./Sales.css";
 export default function Sales({ onBack }) {
   const [sales, setSales] = useState([]);
   const [search, setSearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [selectedSale, setSelectedSale] =
     useState(null);
   const [paymentSale, setPaymentSale] = useState(null);
@@ -23,10 +24,16 @@ export default function Sales({ onBack }) {
     setSales(result);
   };
 
+  const formatDateKey = (value) => {
+    const date = new Date(value);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+
   const filteredSales = sales.filter((sale) => {
     const value = search.toLowerCase();
+    const matchesDate = !selectedDate || formatDateKey(sale.createdAt) === selectedDate;
 
-    return (
+    return matchesDate && (
       sale.invoiceNumber
         .toLowerCase()
         .includes(value) ||
@@ -35,6 +42,15 @@ export default function Sales({ onBack }) {
         .includes(value)
     );
   });
+
+  const dayGroups = useMemo(() => Object.entries(
+    filteredSales.reduce((groups, sale) => {
+      const dateKey = formatDateKey(sale.createdAt);
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(sale);
+      return groups;
+    }, {})
+  ), [filteredSales]);
 
   const openReceivePayment = (sale) => {
   setPaymentSale(sale);
@@ -102,88 +118,140 @@ const handleConfirmPayment = async ({
             }
           />
 
+          <label className="sales-date-filter">
+            <span>Date</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) =>
+                setSelectedDate(event.target.value)
+              }
+            />
+          </label>
+
+          {selectedDate && (
+            <button
+              type="button"
+              className="sales-clear-date"
+              onClick={() => setSelectedDate("")}
+            >
+              All dates
+            </button>
+          )}
+
         </div>
 
 <div className="sales-table-wrapper">
-  <table className="sales-table">
-    <thead>
-      <tr>
-        <th>Invoice</th>
-        <th>Customer</th>
-        <th>Date</th>
-        <th>Total</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+  {dayGroups.map(([dateKey, daySales]) => {
+    const dailyTotal = daySales.reduce(
+      (sum, sale) => sum + Number(sale.total),
+      0
+    );
 
-    <tbody>
-      {filteredSales.map((sale) => (
-        <tr key={sale.id}>
-          <td>{sale.invoiceNumber}</td>
-          <td>{sale.customerName}</td>
+    return (
+      <div key={dateKey} className="sales-day-block">
 
-          <td>
-            {new Date(sale.createdAt).toLocaleDateString()}
-          </td>
+        {/* 🔥 HEADER DEL DÍA (FUERA DE LA TABLA) */}
+        <div className="sales-day-header">
+          <div>
+            <strong>
+              {new Date(`${dateKey}T00:00:00`).toLocaleDateString(
+                undefined,
+                {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }
+              )}
+            </strong>
+          </div>
 
-          <td>
-            ${Number(sale.total).toFixed(2)}
-          </td>
+          <div>
+            {daySales.length} invoice{daySales.length === 1 ? "" : "s"}
+          </div>
 
-          <td>
-             <span
-    className={`sale-status ${
-      sale.status === "PAID"
-        ? "paid"
-        : "pending"
-    }`}
-  >
-    {sale.status === "PAID"
-      ? "Paid"
-      : "Pending Payment"}
-  </span>
-          </td>
+          <div>
+            <strong>Daily total: ${dailyTotal.toFixed(2)}</strong>
+          </div>
+        </div>
 
-          <td>
-  <div className="sales-actions">
-    <button
-      type="button"
-      onClick={() =>
-        setSelectedSale(sale)
-      }
-    >
-      View
-    </button>
+        {/* 🔥 TABLA */}
+        <table className="sales-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-    {sale.status !== "PAID" && (
-      <button
-        type="button"
-        className="sales-payment-button"
-        onClick={() =>
-          openReceivePayment(sale)
-        }
-      >
-        Receive Payment
-      </button>
-    )}
-  </div>
-          </td>
-        </tr>
-      ))}
+          <tbody>
+            {daySales.map((sale) => (
+              <tr key={sale.id}>
+                <td>{sale.invoiceNumber}</td>
+                <td>{sale.customerName}</td>
 
-      {filteredSales.length === 0 && (
-        <tr>
-          <td
-            colSpan="6"
-            className="sales-empty"
-          >
-            No sales found.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
+                <td>
+                  {new Date(sale.createdAt).toLocaleDateString()}
+                </td>
+
+                <td>
+                  ${Number(sale.total).toFixed(2)}
+                </td>
+
+                <td>
+                  <span
+                    className={`sale-status ${
+                      sale.status === "PAID"
+                        ? "paid"
+                        : "pending"
+                    }`}
+                  >
+                    {sale.status === "PAID"
+                      ? "Paid"
+                      : "Pending Payment"}
+                  </span>
+                </td>
+
+                <td>
+                  <div className="sales-actions">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSale(sale)}
+                    >
+                      View
+                    </button>
+
+                    {sale.status !== "PAID" && (
+                      <button
+                        type="button"
+                        className="sales-payment-button"
+                        onClick={() =>
+                          openReceivePayment(sale)
+                        }
+                      >
+                        Receive Payment
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  })}
+
+  {dayGroups.length === 0 && (
+    <div className="sales-empty">
+      No sales found.
+    </div>
+  )}
 </div>
 
       </div>

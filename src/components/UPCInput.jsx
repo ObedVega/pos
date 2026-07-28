@@ -31,6 +31,8 @@ export default function UPCInput({
 
   const upcInputRef = useRef(null);
   const priceInputRef = useRef(null);
+  const scannerBufferRef = useRef("");
+  const scannerTimerRef = useRef(null);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -64,6 +66,22 @@ export default function UPCInput({
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const focusUPCInput = () => {
+      if (activeTab === "upc") {
+        window.setTimeout(() => {
+          upcInputRef.current?.focus();
+        }, 0);
+      }
+    };
+
+    window.addEventListener("focus-upc-input", focusUPCInput);
+
+    return () => {
+      window.removeEventListener("focus-upc-input", focusUPCInput);
+    };
+  }, [activeTab]);
+
   const clearProductInputs = () => {
     setUPC("");
     setSelectedProductUPC("");
@@ -89,6 +107,74 @@ export default function UPCInput({
 
     return null;
   };
+
+  const addScannedProduct = async (scannedUPC) => {
+    setUPC(scannedUPC);
+    setSelectedProductUPC("");
+
+    try {
+      const product = await productService.getByUPC(scannedUPC);
+
+      if (!product) {
+        onShowAlert({
+          type: "error",
+          title: "Product not found",
+          message: `No product was found for UPC ${scannedUPC}.`,
+        });
+        return;
+      }
+
+      if (onAddItem(product, Math.max(1, Math.floor(Number(quantity) || 1)))) {
+        clearProductInputs();
+      }
+    } catch (error) {
+      console.error("Could not process barcode scan:", error);
+      onShowAlert({
+        type: "error",
+        title: "Scan error",
+        message: "The barcode could not be processed.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const resetScannerBuffer = () => {
+      scannerBufferRef.current = "";
+      if (scannerTimerRef.current) {
+        window.clearTimeout(scannerTimerRef.current);
+        scannerTimerRef.current = null;
+      }
+    };
+
+    const handleScannerKey = (event) => {
+      const tagName = event.target?.tagName;
+      const isTextField = tagName === "INPUT" || tagName === "TEXTAREA";
+
+      // Let normal typing continue in text fields, including the UPC field.
+      if (isTextField) return;
+
+      if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        scannerBufferRef.current += event.key;
+        if (scannerTimerRef.current) window.clearTimeout(scannerTimerRef.current);
+        scannerTimerRef.current = window.setTimeout(resetScannerBuffer, 120);
+        return;
+      }
+
+      if (event.key === "Enter" && scannerBufferRef.current.length >= 6) {
+        event.preventDefault();
+        const scannedUPC = scannerBufferRef.current;
+        resetScannerBuffer();
+        addScannedProduct(scannedUPC);
+      }
+    };
+
+    window.addEventListener("keydown", handleScannerKey, true);
+    return () => {
+      window.removeEventListener("keydown", handleScannerKey, true);
+      resetScannerBuffer();
+    };
+  }, [quantity, onAddItem, onShowAlert]);
 
 const handleAdd = async () => {
   const hasUPC = upc.trim() !== "";

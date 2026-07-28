@@ -39,6 +39,10 @@ const productService = {
       );
   },
 
+  async adjustInventory(upc, adjustment) {
+    return ensureElectronAPI().adjustInventory(upc, adjustment);
+  },
+
   async remove(upc) {
     return ensureElectronAPI()
       .deleteProduct(upc);

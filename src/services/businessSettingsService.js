@@ -1,52 +1,38 @@
 import businessSettingsData from "../data/businessSettings";
 
-let currentSettings = {
-  ...businessSettingsData,
+const getAPI = () => {
+  if (!window.electronAPI?.getBusinessSettings) {
+    throw new Error("Business settings API is not available.");
+  }
+  return window.electronAPI;
 };
+
+const mergeWithDefaults = (settings) => ({
+  ...businessSettingsData,
+  ...(settings || {}),
+});
 
 const businessSettingsService = {
   async get() {
-    return {
-      ...currentSettings,
-    };
+    return mergeWithDefaults(await getAPI().getBusinessSettings());
   },
 
   async selectLogo() {
-    if (!window.electronAPI?.selectBusinessLogo) {
-      throw new Error(
-        "The logo selector is not available."
-      );
-    }
-
-    const selectedLogo =
-      await window.electronAPI.selectBusinessLogo();
-
-    if (!selectedLogo) {
-      return null;
-    }
-
-    currentSettings = {
-      ...currentSettings,
-      logoPath: selectedLogo.path,
-      logoUrl: selectedLogo.url,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      ...currentSettings,
-    };
+    const selectedLogo = await getAPI().selectBusinessLogo();
+    if (!selectedLogo) return null;
+    return { logoPath: selectedLogo.path, logoUrl: selectedLogo.url };
   },
 
   async save(settings) {
-    currentSettings = {
-      ...currentSettings,
-      ...settings,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      ...currentSettings,
-    };
+    const savedSettings = mergeWithDefaults(
+      await getAPI().saveBusinessSettings(settings)
+    );
+    window.dispatchEvent(
+      new CustomEvent("business-settings-updated", {
+        detail: savedSettings,
+      })
+    );
+    return savedSettings;
   },
 };
 

@@ -8,6 +8,7 @@ const {
 
 const fs = require("node:fs");
 const path = require("node:path");
+const ExcelJS = require("exceljs");
 
 const database = require("./database/database");
 const productRepository = require("./database/repositories/productRepository");
@@ -16,6 +17,8 @@ const customerRepository = require("./database/repositories/customerRepository")
 const customersSeed = require("./database/seeds/customersSeed");
 const dailyNoticeRepository = require("./database/repositories/dailyNoticeRepository");
 const dailyNoticeSeed = require("./database/seeds/dailyNotice");
+const saleRepository = require("./database/repositories/saleRepository");
+const businessSettingsRepository = require("./database/repositories/businessSettingsRepository");
 
 if (require("electron-squirrel-startup")) {
   app.quit();
@@ -338,7 +341,6 @@ const createWindow = () => {
 
   createApplicationMenu();
 
-  mainWindow.webContents.openDevTools();
 };
 
 const registerBusinessLogoHandlers = () => {
@@ -425,6 +427,15 @@ const registerBusinessLogoHandlers = () => {
   });
 };
 
+const registerBusinessSettingsHandlers = () => {
+  ipcMain.handle("business-settings:get", () =>
+    businessSettingsRepository.get()
+  );
+  ipcMain.handle("business-settings:save", (_event, settings) =>
+    businessSettingsRepository.save(settings)
+  );
+};
+
 
 const registerInvoicePdfHandlers = () => {
   ipcMain.handle(
@@ -493,6 +504,106 @@ const registerInvoicePdfHandlers = () => {
       };
     }
   );
+};
+
+const formatLocalDateKey = (value) => {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const registerReportHandlers = () => {
+  ipcMain.handle("reports:export-sales-xlsx", async (event, range) => {
+    const startDate = String(range?.startDate || "");
+    const endDate = String(range?.endDate || startDate);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      throw new Error("A valid report date range is required.");
+    }
+
+    const sourceWindow = BrowserWindow.fromWebContents(event.sender);
+    const saveResult = await dialog.showSaveDialog(sourceWindow, {
+      title: "Export sales report to Excel",
+      defaultPath: `sales-report-${startDate}-to-${endDate}.xlsx`,
+      filters: [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+    });
+    if (saveResult.canceled || !saveResult.filePath) return { canceled: true };
+
+    const sales = saleRepository.getAll().filter((sale) => {
+      const dateKey = formatLocalDateKey(sale.createdAt);
+      return dateKey >= startDate && dateKey <= endDate;
+    });
+    const totalSales = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
+    const paidSales = sales.filter((sale) => sale.status === "PAID")
+      .reduce((sum, sale) => sum + Number(sale.total), 0);
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "Chiquita Catering POS";
+    workbook.created = new Date();
+
+    const summarySheet = workbook.addWorksheet("Summary");
+    summarySheet.columns = [{ width: 26 }, { width: 20 }];
+    summarySheet.mergeCells("A1:B1");
+    summarySheet.getCell("A1").value = "Sales Report";
+    summarySheet.getCell("A1").font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+    summarySheet.getCell("A1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF111827" } };
+    const summaryRows = [
+      ["Period", `${startDate} to ${endDate}`],
+      ["Invoices", sales.length],
+      ["Total sales", totalSales],
+      ["Paid sales", paidSales],
+      ["Outstanding balance", totalSales - paidSales],
+    ];
+    summaryRows.forEach((row, index) => {
+      const worksheetRow = summarySheet.getRow(index + 3);
+      worksheetRow.values = row;
+      worksheetRow.getCell(1).font = { bold: true };
+      worksheetRow.eachCell((cell) => {
+        cell.border = { top: { style: "thin", color: { argb: "FFD1D5DB" } }, bottom: { style: "thin", color: { argb: "FFD1D5DB" } }, left: { style: "thin", color: { argb: "FFD1D5DB" } }, right: { style: "thin", color: { argb: "FFD1D5DB" } } };
+      });
+    });
+    [5, 6, 7].forEach((rowNumber) => {
+      summarySheet.getCell(`B${rowNumber}`).numFmt = "$#,##0.00";
+    });
+
+    const salesSheet = workbook.addWorksheet("Sales");
+    salesSheet.columns = [
+      { header: "Invoice", key: "invoice", width: 16 },
+      { header: "Date", key: "date", width: 13 },
+      { header: "Customer", key: "customer", width: 28 },
+      { header: "Status", key: "status", width: 16 },
+      { header: "Payment method", key: "paymentMethod", width: 18 },
+      { header: "Subtotal", key: "subtotal", width: 14 },
+      { header: "Yard fee", key: "yardFee", width: 14 },
+      { header: "Tax", key: "tax", width: 12 },
+      { header: "Total", key: "total", width: 14 },
+      { header: "Balance due", key: "balance", width: 16 },
+    ];
+    sales.forEach((sale) => salesSheet.addRow({
+      invoice: sale.invoiceNumber,
+      date: formatLocalDateKey(sale.createdAt),
+      customer: sale.customerName,
+      status: sale.status,
+      paymentMethod: sale.paymentMethod || "",
+      subtotal: Number(sale.subtotal),
+      yardFee: Number(sale.yardFee),
+      tax: Number(sale.tax),
+      total: Number(sale.total),
+      balance: Number(sale.balanceDue),
+    }));
+    salesSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    salesSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1D4ED8" } };
+    salesSheet.views = [{ state: "frozen", ySplit: 1 }];
+    for (let row = 2; row <= sales.length + 1; row += 1) {
+      for (let column = 6; column <= 10; column += 1) {
+        salesSheet.getRow(row).getCell(column).numFmt = "$#,##0.00";
+      }
+    }
+
+    await workbook.xlsx.writeFile(saveResult.filePath);
+    return { canceled: false, filePath: saveResult.filePath, count: sales.length };
+  });
 };
 
 const registerProductHandlers = () => {
@@ -594,6 +705,14 @@ ipcMain.handle(
       return productRepository.remove(upc);
     }
   );
+  ipcMain.handle("inventory:adjust", (_event, upc, adjustment) => productRepository.adjustStock(upc, adjustment));
+  ipcMain.handle("sales:create", (_event, sale) => saleRepository.create(sale));
+  ipcMain.handle("sales:get-all", () => saleRepository.getAll());
+  ipcMain.handle("sales:get-by-id", (_event, id) => saleRepository.getById(id));
+  ipcMain.handle("sales:mark-paid", (_event, id, paymentMethod) => saleRepository.markAsPaid(id, paymentMethod));
+  ipcMain.handle("sales:mark-printed", (_event, id) => saleRepository.markAsPrinted(id));
+  ipcMain.handle("sales:mark-emailed", (_event, id) => saleRepository.markAsEmailed(id));
+
   ipcMain.handle("daily-notice:get", () => {
   return dailyNoticeRepository.get();
 });
@@ -612,10 +731,15 @@ app.whenReady().then(() => {
   database.initialize(app);
 
   productRepository.seed(productsSeed);
+  productRepository.synchronizeInitialInventory(
+    productsSeed
+  );
 customerRepository.seed(customersSeed);
 dailyNoticeRepository.seed(dailyNoticeSeed);
   registerBusinessLogoHandlers();
+  registerBusinessSettingsHandlers();
   registerInvoicePdfHandlers();
+  registerReportHandlers();
   registerProductHandlers();
 
   createWindow();

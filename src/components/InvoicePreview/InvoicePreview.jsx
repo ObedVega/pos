@@ -1,5 +1,7 @@
 import React from "react";
 import "./InvoicePreview.css";
+import businessSettingsService from "../../services/businessSettingsService";
+import dailyNoticeService from "../../services/dailyNoticeService";
 
 export default function InvoicePreview({
   sale,
@@ -9,6 +11,59 @@ export default function InvoicePreview({
 }) {
   const [isSavingPdf, setIsSavingPdf] =
     React.useState(false);
+  const [businessSettings, setBusinessSettings] =
+    React.useState(null);
+  const [dailyNotice, setDailyNotice] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!sale) return undefined;
+
+    const loadBusinessSettings = async () => {
+      try {
+        setBusinessSettings(await businessSettingsService.get());
+      } catch (error) {
+        console.error("Could not load business settings for invoice:", error);
+      }
+    };
+
+    const loadDailyNotice = async () => {
+      try {
+        const currentNotice = await dailyNoticeService.get();
+        setDailyNotice(currentNotice.notice || "");
+      } catch (error) {
+        console.error("Could not load daily notice for invoice:", error);
+      }
+    };
+
+    const handleBusinessSettingsUpdate = (event) => {
+      setBusinessSettings(event.detail);
+    };
+    const handleDailyNoticeUpdate = (event) => {
+      setDailyNotice(event.detail?.notice || "");
+    };
+
+    loadBusinessSettings();
+    loadDailyNotice();
+    window.addEventListener(
+      "business-settings-updated",
+      handleBusinessSettingsUpdate
+    );
+    window.addEventListener(
+      "daily-notice-updated",
+      handleDailyNoticeUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "business-settings-updated",
+        handleBusinessSettingsUpdate
+      );
+      window.removeEventListener(
+        "daily-notice-updated",
+        handleDailyNoticeUpdate
+      );
+    };
+  }, [sale]);
 
   if (!sale) {
     return null;
@@ -27,10 +82,13 @@ export default function InvoicePreview({
       }
     );
 
+  const business = businessSettings ?? {};
+  const displayedDailyNotice =
+    dailyNotice === null ? sale.dailyNotice : dailyNotice;
   const businessLocation = [
-    sale.businessCity,
-    sale.businessState,
-    sale.businessZipCode,
+    business.city || sale.businessCity,
+    business.state || sale.businessState,
+    business.zipCode || sale.businessZipCode,
   ]
     .filter(Boolean)
     .join(", ")
@@ -80,11 +138,11 @@ export default function InvoicePreview({
 <header className="invoice-document-header">
   <div className="invoice-business-block">
     <div className="invoice-logo-wrapper">
-      {sale.businessLogoUrl ? (
+      {business.logoUrl || sale.businessLogoUrl ? (
         <img
           className="invoice-company-logo"
-          src={sale.businessLogoUrl}
-          alt={`${sale.businessName} logo`}
+          src={business.logoUrl || sale.businessLogoUrl}
+          alt={`${business.businessName || sale.businessName} logo`}
         />
       ) : (
         <div className="invoice-logo-placeholder">
@@ -95,44 +153,44 @@ export default function InvoicePreview({
 
     <div className="invoice-seller-details">
       <h1>
-        {sale.businessName ||
+        {business.businessName || sale.businessName ||
           "Chiquita Catering"}
       </h1>
 
       <div className="invoice-business-contact">
-        {sale.businessAddressLine1 && (
-          <p>{sale.businessAddressLine1}</p>
-        )}
+        {business.addressLine1 || sale.businessAddressLine1 ? (
+          <p>{business.addressLine1 || sale.businessAddressLine1}</p>
+        ) : null}
 
-        {sale.businessAddressLine2 && (
-          <p>{sale.businessAddressLine2}</p>
-        )}
+        {business.addressLine2 || sale.businessAddressLine2 ? (
+          <p>{business.addressLine2 || sale.businessAddressLine2}</p>
+        ) : null}
 
         {businessLocation && (
           <p>{businessLocation}</p>
         )}
 
-        {sale.businessPhone && (
+        {business.phone || sale.businessPhone ? (
           <p>
             <strong>Phone:</strong>{" "}
-            {sale.businessPhone}
+            {business.phone || sale.businessPhone}
           </p>
-        )}
+        ) : null}
 
-        {sale.businessPermitNumber && (
+        {business.permitNumber || sale.businessPermitNumber ? (
           <p>
             <strong>Permit:</strong>{" "}
-            {sale.businessPermitNumber}
+            {business.permitNumber || sale.businessPermitNumber}
           </p>
-        )}
+        ) : null}
 
-        {sale.businessEmail && (
-          <p>{sale.businessEmail}</p>
-        )}
+        {business.email || sale.businessEmail ? (
+          <p>{business.email || sale.businessEmail}</p>
+        ) : null}
 
-        {sale.businessWebsite && (
-          <p>{sale.businessWebsite}</p>
-        )}
+        {business.website || sale.businessWebsite ? (
+          <p>{business.website || sale.businessWebsite}</p>
+        ) : null}
       </div>
     </div>
   </div>
@@ -156,7 +214,7 @@ export default function InvoicePreview({
                 <div>
                   <dt>Payment terms</dt>
                   <dd>
-                    {sale.paymentTerms ||
+                    {business.paymentTerms || sale.paymentTerms ||
                       "Due upon receipt"}
                   </dd>
                 </div>
@@ -339,10 +397,10 @@ export default function InvoicePreview({
             </div>
           </section>
 
-          {sale.dailyNotice && (
+          {displayedDailyNotice && (
             <section className="invoice-notice">
               <h3>Terms and notices</h3>
-              <p>{sale.dailyNotice}</p>
+              <p>{displayedDailyNotice}</p>
             </section>
           )}
 
@@ -386,13 +444,6 @@ export default function InvoicePreview({
               : "Save PDF"}
           </button>
 
-          <button
-            type="button"
-            className="invoice-btn invoice-btn-success"
-            onClick={onEmail}
-          >
-            Email Invoice
-          </button>
         </div>
       </div>
     </div>

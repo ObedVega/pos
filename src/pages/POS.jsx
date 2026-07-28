@@ -16,13 +16,17 @@ import DailyNotice from "./DailyNotice/DailyNotice";
 import YardFeeManager from "./YardFeeManager/YardFeeManager";
 import Inventory from "./Inventory/Inventory";
 import BusinessSettings from "./BusinessSettings/BusinessSettings";
+import BarcodeLabels from "../components/BarcodeLabels/BarcodeLabels";
 
 import customerService from "../services/customerService";
 import yardFees from "../data/yardFees";
 import saleService from "../services/saleService";
 import dailyNoticeService from "../services/dailyNoticeService";
 import businessSettingsService from "../services/businessSettingsService";
+import productService from "../services/productService";
+import inventoryService from "../services/inventoryService";
 import Sales from "./Sales/Sales";
+import Reports from "./Reports/Reports";
 
 import "./POS.css";
 
@@ -34,6 +38,8 @@ const [selectedCustomerId, setSelectedCustomerId] = useState("");
 const [customers, setCustomers] = useState([]);
   const [currentView, setCurrentView] = useState("pos"); 
 const [completedSale, setCompletedSale] = useState(null);
+  const [isBarcodeLabelsOpen, setIsBarcodeLabelsOpen] = useState(false);
+  const [barcodeProducts, setBarcodeProducts] = useState([]);
 
   
   const [alert, setAlert] = useState({
@@ -265,6 +271,34 @@ if (!selectedCustomer) {
     return true;
   };
 
+  const handleUpdateCartQuantity = (itemId, quantity) => {
+    const safeQuantity = Math.max(
+      1,
+      Math.floor(Number(quantity) || 1)
+    );
+
+    setCartItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              quantity: safeQuantity,
+              lineTotal: safeQuantity * item.unitPrice,
+            }
+          : item
+      )
+    );
+  };
+
+  const handleRemoveCartItem = (itemId) => {
+    setCartItems((currentItems) =>
+      currentItems.filter((item) => item.id !== itemId)
+    );
+    setSelectedCartItemId((currentId) =>
+      currentId === itemId ? null : currentId
+    );
+  };
+
 const handleClearSale = () => {
   setCartItems([]);
   setLastScanned(null);
@@ -303,6 +337,20 @@ const handleCompleteSale = () => {
     onConfirm: async () => {
 
       try {
+          // Check the current database stock before opening the sale. The
+          // repository repeats this check inside its transaction to prevent
+          // overselling if another register completes a sale at the same time.
+          const currentProducts = await Promise.all(
+            cartItems.map((item) =>
+              productService.getByUPC(item.upc)
+            )
+          );
+
+          inventoryService.validateStock(
+            currentProducts.filter(Boolean),
+            cartItems
+          );
+
           const dailyNoticeRecord = await dailyNoticeService.get();
           const businessSettings = await businessSettingsService.get();
           const sale = await saleService.createSale({
@@ -362,14 +410,20 @@ paymentTerms:
           },
         });
       } catch (error) {
-        console.error("Could not complete sale:", error);
+        const message = error?.message || "The sale could not be completed.";
+        const isInventoryValidationError =
+          /not enough stock|product not found/i.test(message);
+
+        // Insufficient stock is an expected cashier action, not an application
+        // error. Show it in the POS without an alarming console stack trace.
+        if (!isInventoryValidationError) {
+          console.error("Could not complete sale:", error);
+        }
 
         showAlert({
           type: "error",
           title: "Sale error",
-          message:
-            error.message ||
-            "The sale could not be completed.",
+          message,
         });
       }
     },
@@ -445,6 +499,21 @@ const handleOpenBusinessSettings = () => {
     const handleOpenSales = () => {
       setCurrentView("sales");
     };
+    const handleOpenReports = () => {
+      setCurrentView("reports");
+    };
+    const handleOpenBarcodeLabels = async () => {
+      try {
+        setBarcodeProducts(await productService.getAll());
+        setIsBarcodeLabelsOpen(true);
+      } catch (error) {
+        showAlert({
+          type: "error",
+          title: "Products unavailable",
+          message: "Could not load barcode labels.",
+        });
+      }
+    };
 
     window.addEventListener(
       "open-customer-manager",
@@ -477,6 +546,14 @@ window.addEventListener(
     window.addEventListener(
       "open-sales",
       handleOpenSales
+    );
+    window.addEventListener(
+      "open-reports",
+      handleOpenReports
+    );
+    window.addEventListener(
+      "open-barcode-labels",
+      handleOpenBarcodeLabels
     );
 
     return () => {
@@ -512,11 +589,23 @@ window.addEventListener(
         "open-sales",
         handleOpenSales
       );
+      window.removeEventListener(
+        "open-reports",
+        handleOpenReports
+      );
+      window.removeEventListener(
+        "open-barcode-labels",
+        handleOpenBarcodeLabels
+      );
     };
   }, []);
 
 const applyCustomerChange = (newCustomerId) => {
   setSelectedCustomerId(newCustomerId);
+
+  // A barcode scanner behaves like a keyboard. Move focus back to UPC after
+  // choosing the customer so the scan cannot type into the customer list.
+  window.dispatchEvent(new Event("focus-upc-input"));
 };
 
 const handleCustomerChange = (newCustomerId) => {
@@ -563,6 +652,9 @@ const handleCustomerChange = (newCustomerId) => {
     />
   );
 }
+    if (currentView === "reports") {
+      return <Reports onBack={() => setCurrentView("pos")} />;
+    }
   return (
     <div className="pos">
       <Header />
@@ -593,6 +685,8 @@ const handleCustomerChange = (newCustomerId) => {
             items={cartItems}
             selectedItemId={selectedCartItemId}
             onSelectItem={setSelectedCartItemId}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
           />
         </div>
 
@@ -647,6 +741,12 @@ const handleCustomerChange = (newCustomerId) => {
     }
   />
 )}
+      {isBarcodeLabelsOpen && (
+        <BarcodeLabels
+          products={barcodeProducts}
+          onClose={() => setIsBarcodeLabelsOpen(false)}
+        />
+      )}
       <InvoicePreview
         sale={completedSale}
         onClose={handleCloseInvoice}

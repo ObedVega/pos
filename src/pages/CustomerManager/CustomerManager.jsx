@@ -95,6 +95,7 @@ const handleSave = async (event) => {
   }
 
   const customerData = {
+    customerNumber: form.id.trim() || undefined,
     name: form.name.trim(),
     permitNumber: form.permitNumber.trim(),
     phone: form.phone.trim(),
@@ -296,15 +297,18 @@ const handleSave = async (event) => {
                   <span>Client number</span>
 
                   <input
-                    type="text"
-                    value={
-                      mode === "add"
-                        ? "Assigned automatically"
-                        : form.id
-                    }
-                    readOnly
-                    tabIndex={-1}
+                    name="id"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.id}
+                    onChange={handleInputChange}
+                    disabled={isSaving}
+                    placeholder="Assign automatically"
                   />
+                  <small className="customer-field-help">
+                    Leave blank to assign the next available number.
+                  </small>
                 </label>
 
                 <label>

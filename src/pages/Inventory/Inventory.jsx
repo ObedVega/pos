@@ -95,14 +95,19 @@ useEffect(() => {
   setIsAdjustOpen(false);
   setAdjustProduct(null);
 };
-const handleSaveAdjustment = (adjustment) => {
+const handleSaveAdjustment = async (adjustment) => {
+  try {
+    const savedProduct = await productService.adjustInventory(
+      adjustment.upc,
+      adjustment
+    );
   setInventoryItems((currentItems) =>
     currentItems.map((item) => {
       if (item.upc !== adjustment.productId) {
         return item;
       }
 
-      const updatedStock = adjustment.newStock;
+      const updatedStock = savedProduct.stock;
 
       let updatedStatus = "in-stock";
 
@@ -120,9 +125,10 @@ const handleSaveAdjustment = (adjustment) => {
     })
   );
 
-  console.log("Inventory adjustment:", adjustment);
-
   closeAdjust();
+  } catch (error) {
+    console.error("Could not save inventory adjustment:", error);
+  }
 };
   return (
     <div className="inventory-page">

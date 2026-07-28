@@ -41,6 +41,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "business-logo:select"
     );
   },
+  getBusinessSettings: () =>
+    ipcRenderer.invoke("business-settings:get"),
+  saveBusinessSettings: (settings) =>
+    ipcRenderer.invoke("business-settings:save", settings),
   saveInvoicePdf: (invoiceNumber) => {
     return ipcRenderer.invoke(
       "invoice:save-pdf",
@@ -89,12 +93,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
     );
   },
 
+  adjustInventory: (upc, adjustment) =>
+    ipcRenderer.invoke("inventory:adjust", upc, adjustment),
+
   deleteProduct: (upc) => {
     return ipcRenderer.invoke(
       "products:delete",
       upc
     );
   },
+
+  createSale: (sale) => ipcRenderer.invoke("sales:create", sale),
+  getSales: () => ipcRenderer.invoke("sales:get-all"),
+  getSaleById: (id) => ipcRenderer.invoke("sales:get-by-id", id),
+  markSaleAsPaid: (id, paymentMethod) => ipcRenderer.invoke("sales:mark-paid", id, paymentMethod),
+  markSaleAsPrinted: (id) => ipcRenderer.invoke("sales:mark-printed", id),
+  markSaleAsEmailed: (id) => ipcRenderer.invoke("sales:mark-emailed", id),
+  exportSalesReport: (range) =>
+    ipcRenderer.invoke("reports:export-sales-xlsx", range),
     getCustomers: () => {
     return ipcRenderer.invoke(
       "customers:get-all"

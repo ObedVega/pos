@@ -1,0 +1,20 @@
+.barcode-labels-overlay { position: fixed; inset: 0; z-index: 10000; padding: 28px; background: rgba(5, 11, 22, .72); }
+.barcode-labels-modal { height: 100%; overflow: auto; background: #fff; border-radius: 12px; }
+.barcode-labels-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; background: #111827; color: #fff; }
+.barcode-labels-header span { color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.barcode-labels-header h2 { margin: 3px 0 0; }
+.barcode-labels-header button { margin-left: 10px; padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 700; cursor: pointer; }
+.barcode-labels-header button:last-child { background: #475569; }
+.barcode-label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; padding: 22px; }
+.barcode-label { min-height: 116px; padding: 10px; border: 1px dashed #94a3b8; text-align: center; break-inside: avoid; }
+.barcode-label strong { display: block; min-height: 30px; font-size: 13px; }
+.barcode-label small { display: block; margin-top: 2px; color: #475569; }
+.upc-barcode { display: block; width: 100%; max-width: 210px; height: 70px; margin: 3px auto 0; }
+.barcode-unavailable { padding: 25px; color: #b91c1c; font-size: 12px; }
+@media print {
+  body * { visibility: hidden; }
+  #barcode-print-area, #barcode-print-area * { visibility: visible; }
+  #barcode-print-area { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; }
+  .barcode-label { min-height: 100px; border-color: #555; }
+  .no-print { display: none !important; }
+}

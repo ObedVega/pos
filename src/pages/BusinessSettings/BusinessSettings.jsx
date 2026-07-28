@@ -234,7 +234,7 @@ permitNumber:
 
                 <input
                   type="text"
-                  value={settings.businessName}
+                  value={settings.businessName ?? ""}
                   onChange={(event) =>
                     updateField(
                       "businessName",
@@ -249,7 +249,7 @@ permitNumber:
 
                 <input
                   type="text"
-                  value={settings.businessSubtitle}
+                  value={settings.businessSubtitle ?? ""}
                   onChange={(event) =>
                     updateField(
                       "businessSubtitle",
@@ -264,10 +264,14 @@ permitNumber:
 
                 <input
                   type="text"
-                  value={settings.address}
+                  value={
+                    settings.addressLine1 ??
+                    settings.address ??
+                    ""
+                  }
                   onChange={(event) =>
                     updateField(
-                      "address",
+                      "addressLine1",
                       event.target.value
                     )
                   }
@@ -280,7 +284,7 @@ permitNumber:
 
                 <input
                   type="text"
-                  value={settings.phone}
+                  value={settings.phone ?? ""}
                   onChange={(event) =>
                     updateField(
                       "phone",
@@ -310,7 +314,7 @@ permitNumber:
 
                 <input
                   type="email"
-                  value={settings.email}
+                  value={settings.email ?? ""}
                   onChange={(event) =>
                     updateField(
                       "email",
@@ -326,7 +330,7 @@ permitNumber:
 
                 <input
                   type="text"
-                  value={settings.website}
+                  value={settings.website ?? ""}
                   onChange={(event) =>
                     updateField(
                       "website",

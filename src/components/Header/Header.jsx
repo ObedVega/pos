@@ -159,6 +159,17 @@ export default function Header() {
                   <small>Manage products and prices</small>
                 </span>
               </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => openWindow("open-barcode-labels")}
+              >
+                <span className="header-menu-icon">▥</span>
+                <span>
+                  <strong>Barcode labels</strong>
+                  <small>View and print UPC labels</small>
+                </span>
+              </button>
 <div className="header-menu-divider" />
               <button
                 type="button"
@@ -195,6 +206,17 @@ export default function Header() {
     <small>
       Review sales, invoices and payment status
     </small>
+  </span>
+</button>
+<button
+  type="button"
+  role="menuitem"
+  onClick={() => openWindow("open-reports")}
+>
+  <span className="header-menu-icon">▤</span>
+  <span>
+    <strong>Reports</strong>
+    <small>Review and export sales reports</small>
   </span>
 </button>
               <div className="header-menu-divider" />
