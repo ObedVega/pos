@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import JsBarcode from "jsbarcode";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import "./BarcodeLabels.css";
 
 // --- Categorizacion por palabras clave en el nombre del producto ---
@@ -135,6 +137,48 @@ function UPCBarcode({ value }) {
 export default function BarcodeLabels({ products, onClose }) {
   const grouped = useMemo(() => groupByCategory(products), [products]);
 
+  // Calculate total pages based on items per page (8 items per page)
+  const ITEMS_PER_PAGE = 8;
+  const totalItems = grouped.reduce((sum, group) => sum + group.items.length, 0);
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  const handlePrintClick = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById("barcode-print-area");
+    
+    if (!element) {
+      console.error("Barcode print area not found");
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // Use jsPDF's HTML rendering (faster than html2canvas)
+      await pdf.html(element, {
+        x: 10,
+        y: 10,
+        width: 190,
+        windowHeight: element.scrollHeight,
+        useCORS: true,
+      });
+
+      // Download PDF
+      const filename = `barcode-labels-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(filename);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
+    }
+  };
+
   return (
     <div className="barcode-labels-overlay">
       <section
@@ -147,12 +191,18 @@ export default function BarcodeLabels({ products, onClose }) {
           <div>
             <span>Manage</span>
             <h2 id="barcode-labels-title">Barcode labels</h2>
+            <small className="barcode-info-text">
+              📊 Total: {totalItems} códigos | 📄 ~{totalPages} página(s)
+            </small>
           </div>
           <div>
-            <button type="button" onClick={() => window.print()}>
-              Print / Save PDF
+            <button type="button" onClick={handlePrintClick} className="barcode-print-btn">
+              🖨️ Print
             </button>
-            <button type="button" onClick={onClose}>
+            <button type="button" onClick={handleDownloadPDF} className="barcode-download-btn">
+              📥 Download PDF
+            </button>
+            <button type="button" onClick={onClose} className="barcode-close-btn">
               Close
             </button>
           </div>

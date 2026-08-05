@@ -186,3 +186,37 @@
     display: none !important;
   }
 }
+
+/* --- Print Dialog --- */
+
+.barcode-print-dialog-overlay {
+  display: none;
+}
+
+.barcode-print-dialog {
+  display: none;
+}
+
+.barcode-print-btn {
+  background: #2563eb !important;
+}
+
+.barcode-print-btn:hover {
+  background: #1d4ed8 !important;
+}
+
+.barcode-download-btn {
+  background: #10b981 !important;
+}
+
+.barcode-download-btn:hover {
+  background: #059669 !important;
+}
+
+.barcode-close-btn {
+  background: #475569 !important;
+}
+
+.barcode-close-btn:hover {
+  background: #334155 !important;
+}

@@ -163,4 +163,7 @@ saveDailyNotice: (notice) =>
     "daily-notice:save",
     notice
   ),
+
+  printBarcodeLabels: () =>
+    ipcRenderer.invoke("print:barcode-labels"),
 });

@@ -727,6 +727,34 @@ ipcMain.handle(
 );
 };
 
+const registerPrintHandlers = () => {
+  ipcMain.handle("print:barcode-labels", (_event) => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      throw new Error("Main window is not available");
+    }
+    
+    try {
+      // Abre el diálogo de impresión del sistema con preview
+      mainWindow.webContents.print({
+        silent: false,
+        printBackground: true,
+        color: true,
+        margin: {
+          marginType: "custom",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error("Error printing:", error);
+      throw error;
+    }
+  });
+};
+
 app.whenReady().then(() => {
   database.initialize(app);
 
@@ -741,6 +769,7 @@ dailyNoticeRepository.seed(dailyNoticeSeed);
   registerInvoicePdfHandlers();
   registerReportHandlers();
   registerProductHandlers();
+  registerPrintHandlers();
 
   createWindow();
 

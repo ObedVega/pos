@@ -1,7 +1,7 @@
 {
   "name": "pos",
   "productName": "pos",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "private": true,
@@ -41,6 +41,8 @@
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
     "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
     "jsbarcode": "^3.12.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

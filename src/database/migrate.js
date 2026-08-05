@@ -1,12 +1,90 @@
-const fs = require("fs");
-const path = require("path");
+// SQL schemas embedded as strings to work with webpack bundling
+const INITIAL_SCHEMA = `
+CREATE TABLE IF NOT EXISTS products (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  upc TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  price REAL NOT NULL DEFAULT 0.00,
+  stock INTEGER NOT NULL DEFAULT 0,
+  category TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_number INTEGER UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER,
+  total_amount REAL NOT NULL DEFAULT 0.00,
+  payment_method TEXT,
+  paid_at TEXT,
+  printed INTEGER DEFAULT 0,
+  emailed INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
+CREATE TABLE IF NOT EXISTS sale_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sale_id INTEGER NOT NULL,
+  product_id INTEGER,
+  upc TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit_price REAL NOT NULL DEFAULT 0.00,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sale_id) REFERENCES sales(id)
+);
+
+CREATE TABLE IF NOT EXISTS business_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  name TEXT DEFAULT 'Chiquita Catering',
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  logo_path TEXT,
+  enableInventoryControl INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS daily_notice (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  notice TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS app_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_upc ON products(upc);
+CREATE INDEX IF NOT EXISTS idx_products_deleted ON products(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_customers_number ON customers(customer_number);
+CREATE INDEX IF NOT EXISTS idx_customers_deleted ON customers(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id);
+CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+`;
 
 // List of all migrations in order
 const MIGRATIONS = [
-  { version: 1, name: "initial_schema" },
+  { version: 1, name: "initial_schema", sql: INITIAL_SCHEMA },
   // Add new migrations here as you create them
-  // { version: 2, name: "add_new_column" },
-  // { version: 3, name: "add_inventory_control" },
+  // { version: 2, name: "add_new_column", sql: "..." },
 ];
 
 /**
@@ -38,11 +116,9 @@ const setSchemaVersion = (database, version) => {
 };
 
 /**
- * Load and execute a migration file
+ * Load and execute a migration SQL string
  */
-const executeMigration = (database, migrationPath) => {
-  const sql = fs.readFileSync(migrationPath, "utf-8");
-  
+const executeMigration = (database, sql) => {
   // Split by semicolons and filter empty statements
   const statements = sql
     .split(";")
@@ -101,17 +177,11 @@ const migrateDatabase = (database) => {
         `\n🔄 Running migration ${migration.version}: ${migration.name}`
       );
 
-      const migrationPath = path.join(
-        __dirname,
-        "migrations",
-        `${migration.version}_${migration.name}.sql`
-      );
-
-      if (!fs.existsSync(migrationPath)) {
-        throw new Error(`Migration file not found: ${migrationPath}`);
+      if (!migration.sql) {
+        throw new Error(`No SQL found for migration ${migration.version}`);
       }
 
-      executeMigration(database, migrationPath);
+      executeMigration(database, migration.sql);
       setSchemaVersion(database, migration.version);
 
       console.log(
