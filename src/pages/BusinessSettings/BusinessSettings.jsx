@@ -155,6 +155,9 @@ permitNumber:
         settings.paymentTerms ??
           "Due upon receipt"
       ).trim(),
+
+    enableInventoryControl:
+      Boolean(settings.enableInventoryControl ?? true),
   });
 
       setSavedSettings(result);
@@ -339,6 +342,36 @@ permitNumber:
                   }
                   placeholder="Website"
                 />
+              </label>
+            </div>
+          </section>
+
+          <section className="business-settings-section">
+            <div className="business-settings-section-title">
+              <h3>System settings</h3>
+              <p>
+                Configure system behavior and options.
+              </p>
+            </div>
+
+            <div className="business-settings-grid">
+              <label className="business-settings-checkbox">
+                <input
+                  type="checkbox"
+                  checked={
+                    settings.enableInventoryControl ?? true
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      "enableInventoryControl",
+                      event.target.checked
+                    )
+                  }
+                />
+                <span>Enable inventory control</span>
+                <p className="business-settings-checkbox-help">
+                  When enabled, sales cannot be completed if there is insufficient stock. When disabled, sales can be completed regardless of inventory levels.
+                </p>
               </label>
             </div>
           </section>

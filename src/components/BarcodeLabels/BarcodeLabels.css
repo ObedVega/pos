@@ -137,9 +137,26 @@
     visibility: visible;
   }
 
+  /* Estos contenedores tienen position: fixed / overflow: auto para la
+     pantalla (el modal flotante). Al imprimir eso limita el contenido a
+     una sola "ventana" del tamano de una hoja y corta todo lo que sobra.
+     Los regresamos a flujo normal de documento para que el navegador
+     pueda paginar correctamente en varias hojas. */
+  .barcode-labels-overlay {
+    position: static;
+    inset: auto;
+    padding: 0;
+    background: none;
+  }
+
+  .barcode-labels-modal {
+    height: auto;
+    overflow: visible;
+    border-radius: 0;
+  }
+
   #barcode-print-area {
-    position: absolute;
-    inset: 0;
+    position: static;
     padding: 0;
   }
 

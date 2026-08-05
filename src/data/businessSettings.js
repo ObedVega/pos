@@ -20,6 +20,8 @@ const businessSettings = {
 
   paymentTerms: "Due upon receipt",
 
+  enableInventoryControl: true,
+
   updatedAt: null,
 };
 

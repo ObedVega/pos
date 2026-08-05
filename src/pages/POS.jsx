@@ -34,14 +34,14 @@ export default function POS() {
   const [cartItems, setCartItems] = useState([]);
   const [lastScanned, setLastScanned] = useState(null);
   const [selectedCartItemId, setSelectedCartItemId] = useState(null);
-const [selectedCustomerId, setSelectedCustomerId] = useState("");
-const [customers, setCustomers] = useState([]);
-  const [currentView, setCurrentView] = useState("pos"); 
-const [completedSale, setCompletedSale] = useState(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [currentView, setCurrentView] = useState("pos");
+  const [completedSale, setCompletedSale] = useState(null);
   const [isBarcodeLabelsOpen, setIsBarcodeLabelsOpen] = useState(false);
   const [barcodeProducts, setBarcodeProducts] = useState([]);
+  const [yardFeeOverride, setYardFeeOverride] = useState(null);
 
-  
   const [alert, setAlert] = useState({
     open: false,
     type: "info",
@@ -52,55 +52,36 @@ const [completedSale, setCompletedSale] = useState(null);
     showCancel: false,
     onConfirm: null,
   });
-useEffect(() => {
-  const loadCustomers = async () => {
-    try {
-      const customerRecords = await customerService.getAll();
 
-      setCustomers(
-        Array.isArray(customerRecords)
-          ? customerRecords
-          : []
-      );
-    } catch (error) {
-      console.error(
-        "Could not load customers:",
-        error
-      );
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const customerRecords = await customerService.getAll();
 
-      setCustomers([]);
-    }
-  };
+        setCustomers(
+          Array.isArray(customerRecords) ? customerRecords : []
+        );
+      } catch (error) {
+        console.error("Could not load customers:", error);
 
-  loadCustomers();
-}, []);
+        setCustomers([]);
+      }
+    };
+
+    loadCustomers();
+  }, []);
+
   const selectedCustomer =
     customers.find(
       (customer) =>
         String(customer.id) === String(selectedCustomerId)
     ) ?? null;
-    
-  const [
-    isCustomerManagerOpen,
-    setIsCustomerManagerOpen,
-  ] = useState(false);
 
-  const [
-    isItemsManagerOpen,
-    setIsItemsManagerOpen,
-  ] = useState(false);
-
-  const [
-    isDailyNoticeOpen,
-    setIsDailyNoticeOpen,
-  ] = useState(false);
-
-  const [
-    isYardFeeOpen,
-    setIsYardFeeOpen,
-  ] = useState(false);
-
-  const [isBusinessSettingsOpen, setIsBusinessSettingsOpen,] = useState(false);
+  const [isCustomerManagerOpen, setIsCustomerManagerOpen] = useState(false);
+  const [isItemsManagerOpen, setIsItemsManagerOpen] = useState(false);
+  const [isDailyNoticeOpen, setIsDailyNoticeOpen] = useState(false);
+  const [isYardFeeOpen, setIsYardFeeOpen] = useState(false);
+  const [isBusinessSettingsOpen, setIsBusinessSettingsOpen] = useState(false);
 
   const itemCount = useMemo(() => {
     return cartItems.reduce(
@@ -116,21 +97,27 @@ useEffect(() => {
     );
   }, [cartItems]);
 
-  const yardFee = useMemo(() => {
-  if (cartItems.length === 0) {
-    return 0;
-  }
+  // --- Yard fee: calculo automatico + posibilidad de sobreescribirlo/exonerarlo ---
+  const autoYardFee = useMemo(() => {
+    if (cartItems.length === 0) {
+      return 0;
+    }
 
-  const matchingRule = yardFees.find(
-      (rule) =>
-        subtotal >= rule.min &&
-        subtotal <= rule.max
+    const matchingRule = yardFees.find(
+      (rule) => subtotal >= rule.min && subtotal <= rule.max
     );
 
-    return matchingRule
-      ? Number(matchingRule.fee)
-      : 0;
+    return matchingRule ? Number(matchingRule.fee) : 0;
   }, [subtotal, cartItems.length]);
+
+  const yardFee =
+    yardFeeOverride !== null ? yardFeeOverride : autoYardFee;
+
+  const isYardFeeWaived = yardFeeOverride === 0;
+
+  const handleYardFeeOverride = (value) => {
+    setYardFeeOverride(value);
+  };
 
   const tax = 0;
 
@@ -139,75 +126,73 @@ useEffect(() => {
   }, [subtotal, yardFee]);
 
   const closeAlert = () => {
-  setAlert((currentAlert) => ({
-    ...currentAlert,
-    open: false,
-    onConfirm: null,
-  }));
-};
+    setAlert((currentAlert) => ({
+      ...currentAlert,
+      open: false,
+      onConfirm: null,
+    }));
+  };
 
-const showAlert = ({
-  type = "info",
-  title = "Message",
-  message,
-  confirmText = "OK",
-}) => {
-  setAlert({
-    open: true,
-    type,
+  const showAlert = ({
+    type = "info",
+    title = "Message",
+    message,
+    confirmText = "OK",
+  }) => {
+    setAlert({
+      open: true,
+      type,
+      title,
+      message,
+      confirmText,
+      cancelText: "Cancel",
+      showCancel: false,
+      onConfirm: null,
+    });
+  };
+
+  const showConfirmation = ({
+    type = "warning",
     title,
     message,
-    confirmText,
-    cancelText: "Cancel",
-    showCancel: false,
-    onConfirm: null,
-  });
-};
-
-const showConfirmation = ({
-  type = "warning",
-  title,
-  message,
-  confirmText = "Continue",
-  cancelText = "Cancel",
-  onConfirm,
-}) => {
-  setAlert({
-    open: true,
-    type,
-    title,
-    message,
-    confirmText,
-    cancelText,
-    showCancel: true,
+    confirmText = "Continue",
+    cancelText = "Cancel",
     onConfirm,
-  });
-};
+  }) => {
+    setAlert({
+      open: true,
+      type,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      showCancel: true,
+      onConfirm,
+    });
+  };
 
-const handleAlertConfirm = () => {
-  const confirmationAction = alert.onConfirm;
+  const handleAlertConfirm = () => {
+    const confirmationAction = alert.onConfirm;
 
-  closeAlert();
+    closeAlert();
 
-  if (typeof confirmationAction === "function") {
-    confirmationAction();
-  }
-};
+    if (typeof confirmationAction === "function") {
+      confirmationAction();
+    }
+  };
 
   const handleAddItem = (product, quantity) => {
-if (!selectedCustomer) {
-  showAlert({
-    type: "warning",
-    title: "Customer required",
-    message: "Select customer.",
-  });
+    if (!selectedCustomer) {
+      showAlert({
+        type: "warning",
+        title: "Customer required",
+        message: "Select customer.",
+      });
 
-  return false;
-}
-    const safeQuantity = Math.max(
-      1,
-      Math.floor(Number(quantity) || 1)
-    );
+      return false;
+    }
+
+    const safeQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
 
     setCartItems((currentItems) => {
       const existingItem = currentItems.find(
@@ -220,14 +205,12 @@ if (!selectedCustomer) {
             return item;
           }
 
-          const updatedQuantity =
-            item.quantity + safeQuantity;
+          const updatedQuantity = item.quantity + safeQuantity;
 
           return {
             ...item,
             quantity: updatedQuantity,
-            lineTotal:
-              updatedQuantity * item.unitPrice,
+            lineTotal: updatedQuantity * item.unitPrice,
           };
         });
       }
@@ -239,8 +222,7 @@ if (!selectedCustomer) {
         name: product.name,
         unitPrice: Number(product.price),
         quantity: safeQuantity,
-        lineTotal:
-          Number(product.price) * safeQuantity,
+        lineTotal: Number(product.price) * safeQuantity,
       };
 
       return [...currentItems, newItem];
@@ -261,9 +243,7 @@ if (!selectedCustomer) {
     }
 
     setCartItems((currentItems) =>
-      currentItems.filter(
-        (item) => item.id !== selectedCartItemId
-      )
+      currentItems.filter((item) => item.id !== selectedCartItemId)
     );
 
     setSelectedCartItemId(null);
@@ -272,10 +252,7 @@ if (!selectedCustomer) {
   };
 
   const handleUpdateCartQuantity = (itemId, quantity) => {
-    const safeQuantity = Math.max(
-      1,
-      Math.floor(Number(quantity) || 1)
-    );
+    const safeQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
 
     setCartItems((currentItems) =>
       currentItems.map((item) =>
@@ -299,60 +276,61 @@ if (!selectedCustomer) {
     );
   };
 
-const handleClearSale = () => {
-  setCartItems([]);
-  setLastScanned(null);
-  setSelectedCartItemId(null);
-};
-const handleCompleteSale = () => {
-  if (!selectedCustomer) {
-    showAlert({
+  const handleClearSale = () => {
+    setCartItems([]);
+    setLastScanned(null);
+    setSelectedCartItemId(null);
+    setYardFeeOverride(null);
+  };
+
+  const handleCompleteSale = () => {
+    if (!selectedCustomer) {
+      showAlert({
+        type: "warning",
+        title: "Customer required",
+        message: "Select customer.",
+      });
+
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      showAlert({
+        type: "warning",
+        title: "Items required",
+        message: "Add at least one item.",
+      });
+
+      return;
+    }
+
+    showConfirmation({
       type: "warning",
-      title: "Customer required",
-      message: "Select customer.",
-    });
+      title: "Complete sale?",
+      message:
+        `Save this sale for ${selectedCustomer.name} ` +
+        `with a balance due of $${total.toFixed(2)}?`,
+      confirmText: "Complete sale",
+      cancelText: "Continue editing",
 
-    return;
-  }
-
-  if (cartItems.length === 0) {
-    showAlert({
-      type: "warning",
-      title: "Items required",
-      message: "Add at least one item.",
-    });
-
-    return;
-  }
-
-  showConfirmation({
-    type: "warning",
-    title: "Complete sale?",
-    message:
-      `Save this sale for ${selectedCustomer.name} ` +
-      `with a balance due of $${total.toFixed(2)}?`,
-    confirmText: "Complete sale",
-    cancelText: "Continue editing",
-
-    onConfirm: async () => {
-
-      try {
+      onConfirm: async () => {
+        try {
           // Check the current database stock before opening the sale. The
           // repository repeats this check inside its transaction to prevent
           // overselling if another register completes a sale at the same time.
           const currentProducts = await Promise.all(
-            cartItems.map((item) =>
-              productService.getByUPC(item.upc)
-            )
+            cartItems.map((item) => productService.getByUPC(item.upc))
           );
+
+          const businessSettings = await businessSettingsService.get();
 
           inventoryService.validateStock(
             currentProducts.filter(Boolean),
-            cartItems
+            cartItems,
+            businessSettings.enableInventoryControl
           );
 
           const dailyNoticeRecord = await dailyNoticeService.get();
-          const businessSettings = await businessSettingsService.get();
           const sale = await saleService.createSale({
             customer: selectedCustomer,
             items: cartItems,
@@ -365,115 +343,97 @@ const handleCompleteSale = () => {
             businessSubtitle: businessSettings.businessSubtitle,
             businessLogoPath: businessSettings.logoPath,
             businessLogoUrl: businessSettings.logoUrl,
-            businessAddressLine1:
-  businessSettings.addressLine1,
+            businessAddressLine1: businessSettings.addressLine1,
+            businessAddressLine2: businessSettings.addressLine2,
+            businessCity: businessSettings.city,
+            businessState: businessSettings.state,
+            businessZipCode: businessSettings.zipCode,
+            businessPhone: businessSettings.phone,
+            businessPermitNumber: businessSettings.permitNumber,
+            businessEmail: businessSettings.email,
+            businessWebsite: businessSettings.website,
+            paymentTerms: businessSettings.paymentTerms,
+          });
 
-businessAddressLine2:
-  businessSettings.addressLine2,
+          handleClearSale();
+          setSelectedCustomerId("");
 
-businessCity:
-  businessSettings.city,
+          showConfirmation({
+            type: "success",
+            title: "Sale completed",
+            message:
+              `${sale.invoiceNumber} was saved successfully. ` +
+              "Would you like to view the invoice now?",
+            confirmText: "View invoice",
+            cancelText: "Close",
+            onConfirm: () => {
+              setCompletedSale(sale);
+            },
+          });
+        } catch (error) {
+          const message = error?.message || "The sale could not be completed.";
+          const isInventoryValidationError =
+            /not enough stock|product not found/i.test(message);
 
-businessState:
-  businessSettings.state,
+          // Insufficient stock is an expected cashier action, not an application
+          // error. Show it in the POS without an alarming console stack trace.
+          if (!isInventoryValidationError) {
+            console.error("Could not complete sale:", error);
+          }
 
-businessZipCode:
-  businessSettings.zipCode,
-
-businessPhone:
-  businessSettings.phone,
-businessPermitNumber:
-  businessSettings.permitNumber,
-businessEmail:
-  businessSettings.email,
-
-businessWebsite:
-  businessSettings.website,
-
-paymentTerms:
-  businessSettings.paymentTerms,
-        });
-
-        handleClearSale();
-        setSelectedCustomerId("");
-
-        showConfirmation({
-          type: "success",
-          title: "Sale completed",
-          message:
-            `${sale.invoiceNumber} was saved successfully. ` +
-            "Would you like to view the invoice now?",
-          confirmText: "View invoice",
-          cancelText: "Close",
-          onConfirm: () => {
-            setCompletedSale(sale);
-          },
-        });
-      } catch (error) {
-        const message = error?.message || "The sale could not be completed.";
-        const isInventoryValidationError =
-          /not enough stock|product not found/i.test(message);
-
-        // Insufficient stock is an expected cashier action, not an application
-        // error. Show it in the POS without an alarming console stack trace.
-        if (!isInventoryValidationError) {
-          console.error("Could not complete sale:", error);
+          showAlert({
+            type: "error",
+            title: "Sale error",
+            message,
+          });
         }
+      },
+    });
+  };
 
-        showAlert({
-          type: "error",
-          title: "Sale error",
-          message,
-        });
-      }
-    },
-  });
-};
+  const handlePrintInvoice = async () => {
+    if (!completedSale) {
+      return;
+    }
 
-const handlePrintInvoice = async () => {
-  if (!completedSale) {
-    return;
-  }
+    try {
+      window.print();
 
-  try {
-    window.print();
+      await saleService.markAsPrinted(completedSale.id);
 
-    await saleService.markAsPrinted(
-      completedSale.id
-    );
+      setCompletedSale((currentSale) => ({
+        ...currentSale,
+        deliveryStatus: "PRINTED",
+        printedAt: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error("Could not print invoice:", error);
 
-    setCompletedSale((currentSale) => ({
-      ...currentSale,
-      deliveryStatus: "PRINTED",
-      printedAt: new Date().toISOString(),
-    }));
-  } catch (error) {
-    console.error("Could not print invoice:", error);
+      showAlert({
+        type: "error",
+        title: "Print error",
+        message: "The invoice could not be printed.",
+      });
+    }
+  };
+
+  const handleEmailInvoice = () => {
+    if (!completedSale) {
+      return;
+    }
 
     showAlert({
-      type: "error",
-      title: "Print error",
-      message: "The invoice could not be printed.",
+      type: "info",
+      title: "Email invoice",
+      message:
+        "Email delivery will be connected after the invoice is saved in SQLite.",
     });
-  }
-};
+  };
 
-const handleEmailInvoice = () => {
-  if (!completedSale) {
-    return;
-  }
+  const handleCloseInvoice = () => {
+    setCompletedSale(null);
+  };
 
-  showAlert({
-    type: "info",
-    title: "Email invoice",
-    message:
-      "Email delivery will be connected after the invoice is saved in SQLite.",
-  });
-};
-
-const handleCloseInvoice = () => {
-  setCompletedSale(null);
-};
   useEffect(() => {
     const handleOpenCustomerManager = () => {
       setIsCustomerManagerOpen(true);
@@ -490,18 +450,23 @@ const handleCloseInvoice = () => {
     const handleOpenYardFees = () => {
       setIsYardFeeOpen(true);
     };
-const handleOpenBusinessSettings = () => {
-  setIsBusinessSettingsOpen(true);
-};
+
+    const handleOpenBusinessSettings = () => {
+      setIsBusinessSettingsOpen(true);
+    };
+
     const handleOpenInventory = () => {
       setCurrentView("inventory");
     };
+
     const handleOpenSales = () => {
       setCurrentView("sales");
     };
+
     const handleOpenReports = () => {
       setCurrentView("reports");
     };
+
     const handleOpenBarcodeLabels = async () => {
       try {
         setBarcodeProducts(await productService.getAll());
@@ -520,79 +485,48 @@ const handleOpenBusinessSettings = () => {
       handleOpenCustomerManager
     );
 
-    window.addEventListener(
-      "open-items-manager",
-      handleOpenItemsManager
-    );
+    window.addEventListener("open-items-manager", handleOpenItemsManager);
+
+    window.addEventListener("open-daily-notice", handleOpenDailyNotice);
+
+    window.addEventListener("open-yard-fees", handleOpenYardFees);
 
     window.addEventListener(
-      "open-daily-notice",
-      handleOpenDailyNotice
+      "open-business-settings",
+      handleOpenBusinessSettings
     );
 
-    window.addEventListener(
-      "open-yard-fees",
-      handleOpenYardFees
-    );
-window.addEventListener(
-  "open-business-settings",
-  handleOpenBusinessSettings
-);
-    window.addEventListener(
-      "open-inventory",
-      handleOpenInventory
-    );
+    window.addEventListener("open-inventory", handleOpenInventory);
 
-    window.addEventListener(
-      "open-sales",
-      handleOpenSales
-    );
-    window.addEventListener(
-      "open-reports",
-      handleOpenReports
-    );
-    window.addEventListener(
-      "open-barcode-labels",
-      handleOpenBarcodeLabels
-    );
+    window.addEventListener("open-sales", handleOpenSales);
+
+    window.addEventListener("open-reports", handleOpenReports);
+
+    window.addEventListener("open-barcode-labels", handleOpenBarcodeLabels);
 
     return () => {
-      window.removeEventListener(
-        "open-inventory",
-        handleOpenInventory
-      );
+      window.removeEventListener("open-inventory", handleOpenInventory);
 
       window.removeEventListener(
         "open-customer-manager",
         handleOpenCustomerManager
       );
 
-      window.removeEventListener(
-        "open-items-manager",
-        handleOpenItemsManager
-      );
+      window.removeEventListener("open-items-manager", handleOpenItemsManager);
+
+      window.removeEventListener("open-daily-notice", handleOpenDailyNotice);
+
+      window.removeEventListener("open-yard-fees", handleOpenYardFees);
 
       window.removeEventListener(
-        "open-daily-notice",
-        handleOpenDailyNotice
+        "open-business-settings",
+        handleOpenBusinessSettings
       );
 
-      window.removeEventListener(
-        "open-yard-fees",
-        handleOpenYardFees
-      );
-      window.removeEventListener(
-  "open-business-settings",
-  handleOpenBusinessSettings
-);
-      window.removeEventListener(
-        "open-sales",
-        handleOpenSales
-      );
-      window.removeEventListener(
-        "open-reports",
-        handleOpenReports
-      );
+      window.removeEventListener("open-sales", handleOpenSales);
+
+      window.removeEventListener("open-reports", handleOpenReports);
+
       window.removeEventListener(
         "open-barcode-labels",
         handleOpenBarcodeLabels
@@ -600,81 +534,76 @@ window.addEventListener(
     };
   }, []);
 
-const applyCustomerChange = (newCustomerId) => {
-  setSelectedCustomerId(newCustomerId);
+  const applyCustomerChange = (newCustomerId) => {
+    setSelectedCustomerId(newCustomerId);
 
-  // A barcode scanner behaves like a keyboard. Move focus back to UPC after
-  // choosing the customer so the scan cannot type into the customer list.
-  window.dispatchEvent(new Event("focus-upc-input"));
-};
+    // A barcode scanner behaves like a keyboard. Move focus back to UPC after
+    // choosing the customer so the scan cannot type into the customer list.
+    window.dispatchEvent(new Event("focus-upc-input"));
+  };
 
-const handleCustomerChange = (newCustomerId) => {
-  const isDifferentCustomer =
-    String(newCustomerId) !==
-    String(selectedCustomerId);
+  const handleCustomerChange = (newCustomerId) => {
+    const isDifferentCustomer =
+      String(newCustomerId) !== String(selectedCustomerId);
 
-  if (!isDifferentCustomer) {
-    return;
+    if (!isDifferentCustomer) {
+      return;
+    }
+
+    const hasStartedSale = cartItems.length > 0;
+
+    if (hasStartedSale) {
+      showConfirmation({
+        type: "warning",
+        title: "Change customer?",
+        message:
+          "Changing the customer will clear every item from the current sale.",
+        confirmText: "Change customer",
+        cancelText: "Keep current sale",
+        onConfirm: () => {
+          handleClearSale();
+          applyCustomerChange(newCustomerId);
+        },
+      });
+
+      return;
+    }
+
+    applyCustomerChange(newCustomerId);
+  };
+
+  if (currentView === "inventory") {
+    return <Inventory onBack={() => setCurrentView("pos")} />;
   }
 
-  const hasStartedSale = cartItems.length > 0;
-
-  if (hasStartedSale) {
-    showConfirmation({
-      type: "warning",
-      title: "Change customer?",
-      message:
-        "Changing the customer will clear every item from the current sale.",
-      confirmText: "Change customer",
-      cancelText: "Keep current sale",
-      onConfirm: () => {
-        handleClearSale();
-        applyCustomerChange(newCustomerId);
-      },
-    });
-
-
-    return;
+  if (currentView === "sales") {
+    return <Sales onBack={() => setCurrentView("pos")} />;
   }
-  applyCustomerChange(newCustomerId);
-};
-    if (currentView === "inventory") {
-      return (
-        <Inventory
-          onBack={() => setCurrentView("pos")}
-        />
-      );
-    }
-    if (currentView === "sales") {
-  return (
-    <Sales
-      onBack={() => setCurrentView("pos")}
-    />
-  );
-}
-    if (currentView === "reports") {
-      return <Reports onBack={() => setCurrentView("pos")} />;
-    }
+
+  if (currentView === "reports") {
+    return <Reports onBack={() => setCurrentView("pos")} />;
+  }
+
   return (
     <div className="pos">
       <Header />
 
       <div className="pos-body">
-<div className="left-column">
-  <CustomerSelector
-    customers={customers}
-    selectedCustomerId={selectedCustomerId}
-    onCustomerChange={handleCustomerChange}
-  />
+        <div className="left-column">
+          <CustomerSelector
+            customers={customers}
+            selectedCustomerId={selectedCustomerId}
+            onCustomerChange={handleCustomerChange}
+          />
 
-  <UPCInput
-    itemCount={itemCount}
-    onAddItem={handleAddItem}
-    onRemoveItem={handleRemoveItem}
-    onClearSale={handleClearSale}
-    onShowAlert={showAlert}
-  />
-</div>
+          <UPCInput
+            itemCount={itemCount}
+            onAddItem={handleAddItem}
+            onRemoveItem={handleRemoveItem}
+            onClearSale={handleClearSale}
+            onShowAlert={showAlert}
+          />
+        </div>
 
         <div className="last-area">
           <LastScanned product={lastScanned} />
@@ -695,64 +624,50 @@ const handleCustomerChange = (newCustomerId) => {
         </div>
 
         <div className="totals-area">
-          <Totals 
+          <Totals
             items={cartItems}
             yardFee={yardFee}
+            isYardFeeWaived={isYardFeeWaived}
+            onYardFeeOverride={handleYardFeeOverride}
             onCompleteSale={handleCompleteSale}
           />
         </div>
       </div>
 
       {isCustomerManagerOpen && (
-        <CustomerManager
-          onClose={() =>
-            setIsCustomerManagerOpen(false)
-          }
-        />
+        <CustomerManager onClose={() => setIsCustomerManagerOpen(false)} />
       )}
 
       {isItemsManagerOpen && (
-        <ItemsManager
-          onClose={() =>
-            setIsItemsManagerOpen(false)
-          }
-        />
+        <ItemsManager onClose={() => setIsItemsManagerOpen(false)} />
       )}
 
       {isDailyNoticeOpen && (
-        <DailyNotice
-          onClose={() =>
-            setIsDailyNoticeOpen(false)
-          }
-        />
+        <DailyNotice onClose={() => setIsDailyNoticeOpen(false)} />
       )}
 
       {isYardFeeOpen && (
-        <YardFeeManager
-          onClose={() =>
-            setIsYardFeeOpen(false)
-          }
-        />
+        <YardFeeManager onClose={() => setIsYardFeeOpen(false)} />
       )}
+
       {isBusinessSettingsOpen && (
-  <BusinessSettings
-    onClose={() =>
-      setIsBusinessSettingsOpen(false)
-    }
-  />
-)}
+        <BusinessSettings onClose={() => setIsBusinessSettingsOpen(false)} />
+      )}
+
       {isBarcodeLabelsOpen && (
         <BarcodeLabels
           products={barcodeProducts}
           onClose={() => setIsBarcodeLabelsOpen(false)}
         />
       )}
+
       <InvoicePreview
         sale={completedSale}
         onClose={handleCloseInvoice}
         onPrint={handlePrintInvoice}
         onEmail={handleEmailInvoice}
       />
+
       <AlertDialog
         open={alert.open}
         type={alert.type}

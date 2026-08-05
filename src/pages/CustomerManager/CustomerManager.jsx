@@ -17,6 +17,7 @@ export default function CustomerManager({ onClose }) {
   const [form, setForm] = useState(emptyForm);
   const [mode, setMode] = useState("add");
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
 useEffect(() => {
   const loadCustomers = async () => {
@@ -39,6 +40,14 @@ useEffect(() => {
   };
 
   loadCustomers();
+}, []);
+
+// Cleanup effect to prevent state updates on unmounted components
+useEffect(() => {
+  return () => {
+    setIsSaving(false);
+    setError("");
+  };
 }, []);
 
 const filteredCustomers = useMemo(() => {
@@ -102,8 +111,17 @@ const handleSave = async (event) => {
     email: form.email.trim(),
   };
 
+  let timeout = null;
   try {
     setIsSaving(true);
+    setError("");
+
+    // Safety timeout to reset isSaving after 30 seconds
+    timeout = setTimeout(() => {
+      console.warn("Save operation timed out, resetting state");
+      setIsSaving(false);
+      setError("Save operation took too long. Please try again.");
+    }, 30000);
 
     let savedCustomer;
 
@@ -151,11 +169,17 @@ const handleSave = async (event) => {
       error
     );
 
+    setError(
+      error?.message ||
+        "The customer could not be saved."
+    );
+
     window.alert(
       error?.message ||
         "The customer could not be saved."
     );
   } finally {
+    clearTimeout(timeout);
     setIsSaving(false);
   }
 };
@@ -319,6 +343,7 @@ const handleSave = async (event) => {
                     type="text"
                     value={form.permitNumber}
                     onChange={handleInputChange}
+                    disabled={isSaving}
                   />
                 </label>
 
@@ -331,6 +356,7 @@ const handleSave = async (event) => {
                     value={form.name}
                     onChange={handleInputChange}
                     required
+                    disabled={isSaving}
                   />
                 </label>
 
@@ -342,6 +368,7 @@ const handleSave = async (event) => {
                     type="tel"
                     value={form.phone}
                     onChange={handleInputChange}
+                    disabled={isSaving}
                   />
                 </label>
 
@@ -353,6 +380,7 @@ const handleSave = async (event) => {
                     type="email"
                     value={form.email}
                     onChange={handleInputChange}
+                    disabled={isSaving}
                   />
                 </label>
               </div>

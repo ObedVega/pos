@@ -286,3 +286,36 @@
   color: #334155;
   font-weight: 700;
 }
+
+.business-settings-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  cursor: pointer;
+}
+
+.business-settings-checkbox input {
+  width: 18px;
+  height: 18px;
+
+  margin-top: 2px;
+
+  cursor: pointer;
+
+  accent-color: #2563eb;
+}
+
+.business-settings-checkbox span {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.business-settings-checkbox-help {
+  margin: 6px 0 0 28px;
+
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}

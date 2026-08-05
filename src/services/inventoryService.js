@@ -1,5 +1,10 @@
 const inventoryService = {
-  validateStock(products, cartItems) {
+  validateStock(products, cartItems, enableInventoryControl = true) {
+    // If inventory control is disabled, skip validation
+    if (!enableInventoryControl) {
+      return true;
+    }
+
     for (const cartItem of cartItems) {
       const product = products.find(
         (item) => item.upc === cartItem.upc

@@ -24,7 +24,10 @@ const [isLoading, setIsLoading] =
 
 const [isSaving, setIsSaving] =
   useState(false);
-  const [search, setSearch] = useState("");
+  
+const [error, setError] = useState("");
+  
+const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [mode, setMode] = useState("add");
 
@@ -59,6 +62,14 @@ const [isSaving, setIsSaving] =
   };
 
   loadProducts();
+}, []);
+
+// Cleanup effect to prevent state updates on unmounted components
+useEffect(() => {
+  return () => {
+    setIsSaving(false);
+    setError("");
+  };
 }, []);
 
 const filteredItems = useMemo(() => {
@@ -126,8 +137,17 @@ const handleSave = async (event) => {
     ),
   };
 
+  let timeout = null;
   try {
     setIsSaving(true);
+    setError("");
+
+    // Safety timeout to reset isSaving after 30 seconds
+    timeout = setTimeout(() => {
+      console.warn("Save operation timed out, resetting state");
+      setIsSaving(false);
+      setError("Save operation took too long. Please try again.");
+    }, 30000);
 
     let savedProduct;
 
@@ -175,11 +195,17 @@ const handleSave = async (event) => {
       error
     );
 
+    setError(
+      error?.message ||
+        "The product could not be saved."
+    );
+
     window.alert(
       error?.message ||
         "The product could not be saved."
     );
   } finally {
+    clearTimeout(timeout);
     setIsSaving(false);
   }
 };

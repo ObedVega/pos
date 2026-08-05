@@ -200,7 +200,7 @@ create(customer) {
     }
 
     const existing = database.get(
-      "SELECT customer_number FROM customers WHERE customer_number = ?",
+      "SELECT customer_number FROM customers WHERE customer_number = ? AND deleted_at IS NULL",
       customerNumber
     );
     if (existing) {

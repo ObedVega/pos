@@ -40,6 +40,62 @@ overflow:hidden;
 
 }
 
+.yard-fee-row span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yard-fee-waived-tag {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fee2e2;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.yard-fee-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yard-fee-input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.yard-fee-edit button {
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yard-fee-edit button:first-of-type {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.yard-fee-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: -8px;
+  margin-bottom: 18px;
+}
+
 .grand-total{
 
     margin-top:auto;
