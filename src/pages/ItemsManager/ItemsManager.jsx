@@ -56,7 +56,7 @@ const [search, setSearch] = useState("");
 
       setItems([]);
 
-      window.alert(
+      setError(
         error?.message ||
           "Products could not be loaded."
       );
@@ -194,7 +194,7 @@ const handleSave = async (event) => {
     !form.upc.trim() ||
     !form.name.trim()
   ) {
-    window.alert("Product name is required.");
+    setError("UPC and product name are required.");
     return;
   }
 
@@ -271,10 +271,6 @@ const handleSave = async (event) => {
         "The product could not be saved."
     );
 
-    window.alert(
-      error?.message ||
-        "The product could not be saved."
-    );
   } finally {
     clearTimeout(timeout);
     setIsSaving(false);
@@ -300,7 +296,7 @@ const handleDelete = async () => {
 
   try {
     const wasDeleted =
-      await productService.delete(
+      await productService.remove(
         selectedUPC
       );
 
@@ -323,7 +319,8 @@ const handleDelete = async () => {
       error
     );
 
-    window.alert(
+    setIsSaving(false);
+    setError(
       error?.message ||
         "The product could not be deleted."
     );
@@ -415,6 +412,11 @@ const handleDelete = async () => {
             </div>
 
             <form className="items-form" onSubmit={handleSave}>
+              {error && (
+                <div className="items-form-error" role="alert">
+                  {error}
+                </div>
+              )}
 <div className="items-form-grid">
   <label>
     <span>UPC / SKU (optional)</span>

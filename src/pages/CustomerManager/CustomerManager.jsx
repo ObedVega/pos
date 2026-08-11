@@ -76,6 +76,8 @@ const filteredCustomers = useMemo(() => {
   };
 
   const handleAddNew = () => {
+    setIsSaving(false);
+    setError("");
     setSelectedId(null);
     setMode("add");
     setForm(emptyForm);
@@ -98,13 +100,19 @@ const filteredCustomers = useMemo(() => {
 const handleSave = async (event) => {
   event.preventDefault();
 
+  const clientNumber = Number(form.id);
+  if (!Number.isInteger(clientNumber) || clientNumber <= 0) {
+    setError("Client number is required and must be a positive whole number.");
+    return;
+  }
+
   if (!form.name.trim()) {
-    window.alert("Customer name is required.");
+    setError("Customer name is required.");
     return;
   }
 
   const customerData = {
-    customerNumber: form.id.trim() || undefined,
+    customerNumber: clientNumber,
     name: form.name.trim(),
     permitNumber: form.permitNumber.trim(),
     phone: form.phone.trim(),
@@ -174,10 +182,6 @@ const handleSave = async (event) => {
         "The customer could not be saved."
     );
 
-    window.alert(
-      error?.message ||
-        "The customer could not be saved."
-    );
   } finally {
     clearTimeout(timeout);
     setIsSaving(false);
@@ -223,8 +227,8 @@ const handleSave = async (event) => {
       "Could not delete customer:",
       error
     );
-
-    window.alert(
+    setIsSaving(false);
+    setError(
       error?.message ||
         "The customer could not be deleted."
     );
@@ -316,6 +320,11 @@ const handleSave = async (event) => {
             </div>
 
             <form className="customer-form" onSubmit={handleSave}>
+              {error && (
+                <div className="customer-form-error" role="alert">
+                  {error}
+                </div>
+              )}
               <div className="customer-form-grid">
                 <label>
                   <span>Client number</span>
@@ -327,11 +336,12 @@ const handleSave = async (event) => {
                     step="1"
                     value={form.id}
                     onChange={handleInputChange}
-                    disabled={isSaving}
-                    placeholder="Assign automatically"
+                    disabled={isSaving || mode === "edit"}
+                    required
+                    placeholder="Enter client number"
                   />
                   <small className="customer-field-help">
-                    Leave blank to assign the next available number.
+                    Enter a unique number for this customer.
                   </small>
                 </label>
 

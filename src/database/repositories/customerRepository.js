@@ -1,5 +1,53 @@
 const database = require("../database");
 
+const releaseCustomerNumber = (customerNumber) => {
+  const customer = database.get(
+    "SELECT * FROM customers WHERE customer_number = ?",
+    customerNumber
+  );
+
+  if (!customer) return false;
+
+  const salesCount = database.get(
+    "SELECT COUNT(*) AS total FROM sales WHERE customer_number = ?",
+    customerNumber
+  );
+
+  if (Number(salesCount.total) > 0) {
+    const archiveRow = database.get(
+      "SELECT COALESCE(MIN(customer_number), 0) - 1 AS archive_number FROM customers"
+    );
+    const archiveNumber = Math.min(-1, Number(archiveRow.archive_number));
+
+    // Preserve the customer referenced by historical invoices under an
+    // internal negative number, then release the user-facing positive number.
+    database.run(
+      `INSERT INTO customers (
+        customer_number, name, permit_number, truck_number, phone, email,
+        created_at, updated_at, deleted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      archiveNumber,
+      customer.name,
+      customer.permit_number,
+      customer.truck_number,
+      customer.phone,
+      customer.email,
+      customer.created_at
+    );
+    database.run(
+      "UPDATE sales SET customer_number = ? WHERE customer_number = ?",
+      archiveNumber,
+      customerNumber
+    );
+  }
+
+  database.run(
+    "DELETE FROM customers WHERE customer_number = ?",
+    customerNumber
+  );
+  return true;
+};
+
 const mapCustomerRow = (row) => {
   if (!row) {
     return null;
@@ -200,31 +248,27 @@ create(customer) {
     }
 
     const existing = database.get(
-      "SELECT customer_number FROM customers WHERE customer_number = ? AND deleted_at IS NULL",
+      "SELECT customer_number, deleted_at FROM customers WHERE customer_number = ?",
       customerNumber
     );
     if (existing) {
-      throw new Error(`Client number ${customerNumber} already exists.`);
+      if (existing.deleted_at) {
+        releaseCustomerNumber(customerNumber);
+      } else {
+        throw new Error(`Client number ${customerNumber} already exists.`);
+      }
     }
+  } else {
+    // customer_number is not AUTOINCREMENT in every database version. Pick
+    // the next value explicitly and include soft-deleted rows so a primary
+    // key is never reused.
+    const nextNumberRow = database.get(
+      "SELECT COALESCE(MAX(customer_number), 0) + 1 AS next_number FROM customers"
+    );
+    customerNumber = Number(nextNumberRow.next_number);
   }
 
-  const result = customerNumber === null ? database.run(
-    `
-      INSERT INTO customers (
-        name,
-        permit_number,
-        truck_number,
-        phone,
-        email
-      )
-      VALUES (?, ?, ?, ?, ?)
-    `,
-    name,
-    permitNumber,
-    truckNumber,
-    phone,
-    email
-  ) : database.run(
+  database.run(
     `
       INSERT INTO customers (
         customer_number,
@@ -244,9 +288,7 @@ create(customer) {
     email
   );
 
-  return this.getByCustomerNumber(
-    Number(result.lastInsertRowid)
-  );
+  return this.getByCustomerNumber(customerNumber);
 },
 
   update(customerNumber, changes) {
@@ -274,10 +316,10 @@ create(customer) {
       newCustomerNumber !==
       currentCustomer.customerNumber
     ) {
-      const conflictingCustomer =
-        this.getByCustomerNumber(
-          newCustomerNumber
-        );
+      const conflictingCustomer = database.get(
+        "SELECT customer_number FROM customers WHERE customer_number = ?",
+        newCustomerNumber
+      );
 
       if (conflictingCustomer) {
         throw new Error(
@@ -318,19 +360,15 @@ create(customer) {
     const normalizedCustomerNumber =
       Number(customerNumber);
 
-    const result = database.run(
-      `
-        UPDATE customers
-        SET
-          deleted_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE customer_number = ?
-          AND deleted_at IS NULL
-      `,
-      normalizedCustomerNumber
-    );
+    if (
+      !Number.isInteger(normalizedCustomerNumber) ||
+      normalizedCustomerNumber <= 0 ||
+      !this.getByCustomerNumber(normalizedCustomerNumber)
+    ) return false;
 
-    return result.changes > 0;
+    return database.transaction(() =>
+      releaseCustomerNumber(normalizedCustomerNumber)
+    )();
   },
 
   restore(customerNumber) {
@@ -367,28 +405,46 @@ create(customer) {
       return;
     }
 
-    const insertCustomer = database.prepare(`
-      INSERT OR IGNORE INTO customers (
-        customer_number,
-        name,
-        permit_number,
-        truck_number,
-        phone,
-        email
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
+    const seedKey = "initial_customer_catalog_v1";
+    const seedStatus = database.get(
+      "SELECT value FROM app_metadata WHERE key = ?",
+      seedKey
+    );
+    if (seedStatus?.value === "complete") return;
 
-    customers.forEach((customer) => {
-      insertCustomer.run(
-        Number(customer.customer_number),
-        String(customer.name ?? ""),
-        String(customer.permit_number ?? ""),
-        String(customer.truck_number ?? ""),
-        String(customer.phone ?? ""),
-        String(customer.email ?? "")
+    database.transaction(() => {
+      const insertCustomer = database.prepare(`
+        INSERT OR IGNORE INTO customers (
+          customer_number,
+          name,
+          permit_number,
+          truck_number,
+          phone,
+          email
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      customers.forEach((customer) => {
+        insertCustomer.run(
+          Number(customer.customer_number),
+          String(customer.name ?? ""),
+          String(customer.permit_number ?? ""),
+          String(customer.truck_number ?? ""),
+          String(customer.phone ?? ""),
+          String(customer.email ?? "")
+        );
+      });
+
+      database.run(
+        `INSERT INTO app_metadata (key, value, updated_at)
+         VALUES (?, 'complete', CURRENT_TIMESTAMP)
+         ON CONFLICT(key) DO UPDATE SET
+           value = excluded.value,
+           updated_at = CURRENT_TIMESTAMP`,
+        seedKey
       );
-    });
+    })();
   },
 };
 

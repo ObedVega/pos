@@ -367,6 +367,17 @@
   color: #ffffff;
 }
 
+.customer-form-error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .customer-field-help {
   color: #64748b;
   font-size: 11px;
