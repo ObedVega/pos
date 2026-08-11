@@ -147,6 +147,10 @@ export default function UPCInput({
     };
 
     const handleScannerKey = (event) => {
+      // Items Manager owns barcode scans while its modal is open. Do not let
+      // the POS lookup or add a product behind the modal.
+      if (document.querySelector(".items-manager-overlay")) return;
+
       const tagName = event.target?.tagName;
       const isTextField = tagName === "INPUT" || tagName === "TEXTAREA";
 

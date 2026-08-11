@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import "./ItemsManager.css";
@@ -30,6 +31,9 @@ const [error, setError] = useState("");
 const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [mode, setMode] = useState("add");
+  const upcInputRef = useRef(null);
+  const scannerBufferRef = useRef("");
+  const scannerTimerRef = useRef(null);
 
   useEffect(() => {
   const loadProducts = async () => {
@@ -99,6 +103,7 @@ const handleAddNew = () => {
   setSelectedUPC(null);
   setMode("add");
   setForm(emptyForm);
+  window.setTimeout(() => upcInputRef.current?.focus(), 0);
 };
 
 const handleSelectItem = (item) => {
@@ -115,6 +120,72 @@ const handleSelectItem = (item) => {
     ),
   });
 };
+
+const handleScannedUPC = async (value) => {
+  const scannedUPC = String(value ?? "").trim();
+  if (!scannedUPC) return;
+
+  try {
+    setError("");
+    const existingProduct = await productService.getByUPC(scannedUPC);
+
+    if (existingProduct) {
+      handleSelectItem(existingProduct);
+      return;
+    }
+
+    setSelectedUPC(null);
+    setMode("add");
+    setForm({ ...emptyForm, upc: scannedUPC });
+    window.setTimeout(() => upcInputRef.current?.focus(), 0);
+  } catch (scanError) {
+    console.error("Could not process item barcode:", scanError);
+    setError(scanError?.message || "The barcode could not be processed.");
+  }
+};
+
+useEffect(() => {
+  window.setTimeout(() => upcInputRef.current?.focus(), 0);
+
+  const resetScannerBuffer = () => {
+    scannerBufferRef.current = "";
+    if (scannerTimerRef.current) {
+      window.clearTimeout(scannerTimerRef.current);
+      scannerTimerRef.current = null;
+    }
+  };
+
+  const handleScannerKey = (event) => {
+    const tagName = event.target?.tagName;
+    const isTextField = tagName === "INPUT" || tagName === "TEXTAREA";
+
+    // The focused UPC field receives scanner input normally. Its Enter
+    // handler below completes the lookup without submitting the form.
+    if (isTextField) return;
+
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault();
+      scannerBufferRef.current += event.key;
+      if (scannerTimerRef.current) window.clearTimeout(scannerTimerRef.current);
+      scannerTimerRef.current = window.setTimeout(resetScannerBuffer, 120);
+      return;
+    }
+
+    if (event.key === "Enter" && scannerBufferRef.current.length >= 6) {
+      event.preventDefault();
+      event.stopPropagation();
+      const scannedUPC = scannerBufferRef.current;
+      resetScannerBuffer();
+      handleScannedUPC(scannedUPC);
+    }
+  };
+
+  window.addEventListener("keydown", handleScannerKey, true);
+  return () => {
+    window.removeEventListener("keydown", handleScannerKey, true);
+    resetScannerBuffer();
+  };
+}, []);
 
 const handleSave = async (event) => {
   event.preventDefault();
@@ -349,10 +420,18 @@ const handleDelete = async () => {
     <span>UPC / SKU (optional)</span>
 
     <input
+      ref={upcInputRef}
       name="upc"
       type="text"
       value={form.upc}
       onChange={handleInputChange}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          handleScannedUPC(event.currentTarget.value);
+        }
+      }}
       disabled={isSaving}
     />
     {mode === "add" && (
