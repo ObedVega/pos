@@ -70,6 +70,14 @@ export default function Cart({
               <span className="cart-item-details">
                 <strong>{item.name}</strong>
                 <small>UPC: {item.upc}</small>
+                {item.addedAt && (
+                  <small>
+                    Added: {new Date(item.addedAt).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </small>
+                )}
               </span>
 
               <span>

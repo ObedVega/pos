@@ -239,3 +239,42 @@ overflow:hidden;
     font-size: 13px;
   }
 }
+
+.save-open-sale-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  border: 1px solid #16a34a;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.payment-due-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.payment-due-date input {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+}
+
+.save-open-sale-button:hover {
+  background: #dcfce7;
+}

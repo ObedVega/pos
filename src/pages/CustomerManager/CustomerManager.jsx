@@ -18,6 +18,7 @@ export default function CustomerManager({ onClose }) {
   const [mode, setMode] = useState("add");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
 useEffect(() => {
   const loadCustomers = async () => {
@@ -78,6 +79,7 @@ const filteredCustomers = useMemo(() => {
   const handleAddNew = () => {
     setIsSaving(false);
     setError("");
+    setSuccessMessage("");
     setSelectedId(null);
     setMode("add");
     setForm(emptyForm);
@@ -142,6 +144,9 @@ const handleSave = async (event) => {
         ...current,
         savedCustomer,
       ]);
+      setSuccessMessage(
+        `Customer "${savedCustomer.name}" was added successfully.`
+      );
     } else {
       // selectedId identifica al cliente.
       // No permitimos cambiar su número.
@@ -157,6 +162,9 @@ const handleSave = async (event) => {
             ? savedCustomer
             : customer
         )
+      );
+      setSuccessMessage(
+        `Customer "${savedCustomer.name}" was updated successfully.`
       );
     }
 
@@ -431,6 +439,28 @@ const handleSave = async (event) => {
           </main>
         </div>
       </section>
+
+      {successMessage && (
+        <div className="customer-success-overlay" role="presentation">
+          <section
+            className="customer-success-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="customer-success-title"
+          >
+            <div className="customer-success-icon">✓</div>
+            <h3 id="customer-success-title">Change saved</h3>
+            <p>{successMessage}</p>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              autoFocus
+            >
+              OK
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS sales (
   paid_at TEXT,
   printed_at TEXT,
   emailed_at TEXT,
+  closed_at TEXT,
   FOREIGN KEY (customer_number) REFERENCES customers(customer_number)
 );
 
@@ -121,6 +122,7 @@ CREATE TABLE IF NOT EXISTS sale_items (
   quantity INTEGER NOT NULL CHECK (quantity > 0),
   unit_price REAL NOT NULL CHECK (unit_price >= 0),
   line_total REAL NOT NULL CHECK (line_total >= 0),
+  added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
 );
 

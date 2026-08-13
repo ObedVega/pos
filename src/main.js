@@ -531,7 +531,8 @@ const registerReportHandlers = () => {
     if (saveResult.canceled || !saveResult.filePath) return { canceled: true };
 
     const sales = saleRepository.getAll().filter((sale) => {
-      const dateKey = formatLocalDateKey(sale.createdAt);
+      if (sale.status === "OPEN") return false;
+      const dateKey = formatLocalDateKey(sale.closedAt || sale.createdAt);
       return dateKey >= startDate && dateKey <= endDate;
     });
     const totalSales = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
@@ -707,6 +708,8 @@ ipcMain.handle(
   );
   ipcMain.handle("inventory:adjust", (_event, upc, adjustment) => productRepository.adjustStock(upc, adjustment));
   ipcMain.handle("sales:create", (_event, sale) => saleRepository.create(sale));
+  ipcMain.handle("sales:save-open", (_event, sale) => saleRepository.saveOpen(sale));
+  ipcMain.handle("sales:get-open-by-customer", (_event, customerId) => saleRepository.getOpenByCustomer(customerId));
   ipcMain.handle("sales:get-all", () => saleRepository.getAll());
   ipcMain.handle("sales:get-by-id", (_event, id) => saleRepository.getById(id));
   ipcMain.handle("sales:mark-paid", (_event, id, paymentMethod) => saleRepository.markAsPaid(id, paymentMethod));

@@ -8,6 +8,8 @@ const getAPI = () => {
 
 const saleService = {
   createSale: (sale) => getAPI().createSale(sale),
+  saveOpenSale: (sale) => getAPI().saveOpenSale(sale),
+  getOpenByCustomer: (customerId) => getAPI().getOpenSaleByCustomer(customerId),
   getAll: () => getAPI().getSales(),
   getById: (id) => getAPI().getSaleById(id),
   markAsPaid: (id, paymentMethod) => getAPI().markSaleAsPaid(id, paymentMethod),

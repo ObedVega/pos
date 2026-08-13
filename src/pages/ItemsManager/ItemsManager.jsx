@@ -27,6 +27,7 @@ const [isSaving, setIsSaving] =
   useState(false);
   
 const [error, setError] = useState("");
+const [successMessage, setSuccessMessage] = useState("");
   
 const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
@@ -100,6 +101,7 @@ const filteredItems = useMemo(() => {
   };
 
 const handleAddNew = () => {
+  setSuccessMessage("");
   setSelectedUPC(null);
   setMode("add");
   setForm(emptyForm);
@@ -232,6 +234,9 @@ const handleSave = async (event) => {
         ...current,
         savedProduct,
       ]);
+      setSuccessMessage(
+        `Item "${savedProduct.name}" was added successfully.`
+      );
     } else {
       savedProduct =
         await productService.update(
@@ -245,6 +250,9 @@ const handleSave = async (event) => {
             ? savedProduct
             : item
         )
+      );
+      setSuccessMessage(
+        `Item "${savedProduct.name}" was updated successfully.`
       );
     }
 
@@ -525,6 +533,28 @@ const handleDelete = async () => {
           </main>
         </div>
       </section>
+
+      {successMessage && (
+        <div className="items-success-overlay" role="presentation">
+          <section
+            className="items-success-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="items-success-title"
+          >
+            <div className="items-success-icon">✓</div>
+            <h3 id="items-success-title">Change saved</h3>
+            <p>{successMessage}</p>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              autoFocus
+            >
+              OK
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,12 +2,20 @@ import React, { useMemo, useState } from "react";
 import "./Totals.css";
 
 const formatMoney = (value) => `$${Number(value).toFixed(2)}`;
+const todayDateKey = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 export default function Totals({
   items,
   yardFee = 0,
   isYardFeeWaived = false,
   onYardFeeOverride,
+  onSaveOpenSale,
+  hasOpenSale = false,
+  dueDate,
+  onDueDateChange,
   onCompleteSale,
 }) {
   const [isEditingYardFee, setIsEditingYardFee] = useState(false);
@@ -166,6 +174,25 @@ export default function Totals({
         <span>Total</span>
         <h1>{formatMoney(totals.total)}</h1>
       </div>
+
+      <label className="payment-due-date">
+        <span>Collection date</span>
+        <input
+          type="date"
+          value={dueDate}
+          min={todayDateKey()}
+          onChange={(event) => onDueDateChange(event.target.value)}
+          required
+        />
+      </label>
+
+      <button
+        type="button"
+        className="save-open-sale-button"
+        onClick={onSaveOpenSale}
+      >
+        {hasOpenSale ? "Save Open Account" : "Leave Account Open"}
+      </button>
 
       <button
         type="button"

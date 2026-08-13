@@ -24,11 +24,15 @@ import saleService from "../services/saleService";
 import dailyNoticeService from "../services/dailyNoticeService";
 import businessSettingsService from "../services/businessSettingsService";
 import productService from "../services/productService";
-import inventoryService from "../services/inventoryService";
 import Sales from "./Sales/Sales";
 import Reports from "./Reports/Reports";
 
 import "./POS.css";
+
+const localDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 export default function POS() {
   const [cartItems, setCartItems] = useState([]);
@@ -41,6 +45,8 @@ export default function POS() {
   const [isBarcodeLabelsOpen, setIsBarcodeLabelsOpen] = useState(false);
   const [barcodeProducts, setBarcodeProducts] = useState([]);
   const [yardFeeOverride, setYardFeeOverride] = useState(null);
+  const [openSaleId, setOpenSaleId] = useState(null);
+  const [dueDate, setDueDate] = useState(localDateKey());
 
   const [alert, setAlert] = useState({
     open: false,
@@ -196,7 +202,7 @@ export default function POS() {
 
     setCartItems((currentItems) => {
       const existingItem = currentItems.find(
-        (item) => item.productId === product.upc
+        (item) => item.productId === product.upc && !item.saleItemId
       );
 
       if (existingItem) {
@@ -216,13 +222,14 @@ export default function POS() {
       }
 
       const newItem = {
-        id: product.upc,
+        id: `${product.upc}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         productId: product.upc,
         upc: product.upc,
         name: product.name,
         unitPrice: Number(product.price),
         quantity: safeQuantity,
         lineTotal: Number(product.price) * safeQuantity,
+        addedAt: new Date().toISOString(),
       };
 
       return [...currentItems, newItem];
@@ -281,6 +288,64 @@ export default function POS() {
     setLastScanned(null);
     setSelectedCartItemId(null);
     setYardFeeOverride(null);
+    setOpenSaleId(null);
+    setDueDate(localDateKey());
+  };
+
+  const buildSalePayload = async () => {
+    const businessSettings = await businessSettingsService.get();
+    const dailyNoticeRecord = await dailyNoticeService.get();
+    return {
+      customer: selectedCustomer,
+      items: cartItems,
+      subtotal,
+      yardFee,
+      tax,
+      total,
+      dueDate,
+      dailyNotice: dailyNoticeRecord.notice || "",
+      businessName: businessSettings.businessName,
+      businessSubtitle: businessSettings.businessSubtitle,
+      businessLogoPath: businessSettings.logoPath,
+      businessLogoUrl: businessSettings.logoUrl,
+      businessAddressLine1: businessSettings.addressLine1,
+      businessAddressLine2: businessSettings.addressLine2,
+      businessCity: businessSettings.city,
+      businessState: businessSettings.state,
+      businessZipCode: businessSettings.zipCode,
+      businessPhone: businessSettings.phone,
+      businessPermitNumber: businessSettings.permitNumber,
+      businessEmail: businessSettings.email,
+      businessWebsite: businessSettings.website,
+      paymentTerms: businessSettings.paymentTerms,
+    };
+  };
+
+  const handleSaveOpenSale = async () => {
+    if (!selectedCustomer || cartItems.length === 0) {
+      showAlert({
+        type: "warning",
+        title: "Account not ready",
+        message: "Select a customer and add at least one item.",
+      });
+      return;
+    }
+    try {
+      const sale = await saleService.saveOpenSale(await buildSalePayload());
+      handleClearSale();
+      setSelectedCustomerId("");
+      showAlert({
+        type: "success",
+        title: "Account left open",
+        message: `${sale.invoiceNumber} was saved. Select this customer later to continue adding items.`,
+      });
+    } catch (error) {
+      showAlert({
+        type: "error",
+        title: "Could not save account",
+        message: error?.message || "The open account could not be saved.",
+      });
+    }
   };
 
   const handleCompleteSale = () => {
@@ -309,51 +374,14 @@ export default function POS() {
       title: "Complete sale?",
       message:
         `Save this sale for ${selectedCustomer.name} ` +
-        `with a balance due of $${total.toFixed(2)}?`,
+        `with a balance due of $${total.toFixed(2)} ` +
+        `and collection date ${dueDate}?`,
       confirmText: "Complete sale",
       cancelText: "Continue editing",
 
       onConfirm: async () => {
         try {
-          // Check the current database stock before opening the sale. The
-          // repository repeats this check inside its transaction to prevent
-          // overselling if another register completes a sale at the same time.
-          const currentProducts = await Promise.all(
-            cartItems.map((item) => productService.getByUPC(item.upc))
-          );
-
-          const businessSettings = await businessSettingsService.get();
-
-          inventoryService.validateStock(
-            currentProducts.filter(Boolean),
-            cartItems,
-            businessSettings.enableInventoryControl
-          );
-
-          const dailyNoticeRecord = await dailyNoticeService.get();
-          const sale = await saleService.createSale({
-            customer: selectedCustomer,
-            items: cartItems,
-            subtotal,
-            yardFee,
-            tax,
-            total,
-            dailyNotice: dailyNoticeRecord.notice || "",
-            businessName: businessSettings.businessName,
-            businessSubtitle: businessSettings.businessSubtitle,
-            businessLogoPath: businessSettings.logoPath,
-            businessLogoUrl: businessSettings.logoUrl,
-            businessAddressLine1: businessSettings.addressLine1,
-            businessAddressLine2: businessSettings.addressLine2,
-            businessCity: businessSettings.city,
-            businessState: businessSettings.state,
-            businessZipCode: businessSettings.zipCode,
-            businessPhone: businessSettings.phone,
-            businessPermitNumber: businessSettings.permitNumber,
-            businessEmail: businessSettings.email,
-            businessWebsite: businessSettings.website,
-            paymentTerms: businessSettings.paymentTerms,
-          });
+          const sale = await saleService.createSale(await buildSalePayload());
 
           handleClearSale();
           setSelectedCustomerId("");
@@ -534,8 +562,38 @@ export default function POS() {
     };
   }, []);
 
-  const applyCustomerChange = (newCustomerId) => {
+  const applyCustomerChange = async (newCustomerId) => {
     setSelectedCustomerId(newCustomerId);
+
+    if (!newCustomerId) {
+      handleClearSale();
+    } else {
+      try {
+        const openSale = await saleService.getOpenByCustomer(newCustomerId);
+        if (openSale) {
+          setCartItems(openSale.items || []);
+          setOpenSaleId(openSale.id);
+          setYardFeeOverride(Number(openSale.yardFee) || 0);
+          setDueDate(
+            openSale.dueDate
+              ? String(openSale.dueDate).slice(0, 10)
+              : localDateKey()
+          );
+          setLastScanned(null);
+          setSelectedCartItemId(null);
+        } else {
+          handleClearSale();
+          setSelectedCustomerId(newCustomerId);
+        }
+      } catch (error) {
+        console.error("Could not load open account:", error);
+        showAlert({
+          type: "error",
+          title: "Open account unavailable",
+          message: "The customer's open account could not be loaded.",
+        });
+      }
+    }
 
     // A barcode scanner behaves like a keyboard. Move focus back to UPC after
     // choosing the customer so the scan cannot type into the customer list.
@@ -629,6 +687,10 @@ export default function POS() {
             yardFee={yardFee}
             isYardFeeWaived={isYardFeeWaived}
             onYardFeeOverride={handleYardFeeOverride}
+            onSaveOpenSale={handleSaveOpenSale}
+            hasOpenSale={Boolean(openSaleId)}
+            dueDate={dueDate}
+            onDueDateChange={setDueDate}
             onCompleteSale={handleCompleteSale}
           />
         </div>

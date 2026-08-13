@@ -117,24 +117,47 @@ const create = (product) => {
     );
   }
 
-database.run(`
-      INSERT INTO products (
-        upc,
-        name,
-        price,
-        stock,
-        minimum_stock
-      )
-      VALUES (?, ?, ?, ?, ?)
-`,
-  upc,
-  name,
-  price,
-  stock,
-  minimumStock
-);
+  return database.transaction(() => {
+    const existing = database.get(
+      "SELECT upc, deleted_at FROM products WHERE upc = ?",
+      upc
+    );
 
-  return getByUPC(upc);
+    if (existing && !existing.deleted_at) {
+      throw new Error(
+        `UPC ${upc} already belongs to an active product. Select it from the item list to edit it.`
+      );
+    }
+
+    if (existing?.deleted_at) {
+      // Reuse the original row so historical sale and inventory references
+      // remain valid while making the UPC available again to the user.
+      database.run(`
+        UPDATE products
+        SET
+          name = ?,
+          price = ?,
+          stock = ?,
+          minimum_stock = ?,
+          deleted_at = NULL,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE upc = ?
+      `, name, price, stock, minimumStock, upc);
+    } else {
+      database.run(`
+        INSERT INTO products (
+          upc,
+          name,
+          price,
+          stock,
+          minimum_stock
+        )
+        VALUES (?, ?, ?, ?, ?)
+      `, upc, name, price, stock, minimumStock);
+    }
+
+    return getByUPC(upc);
+  })();
 };
 
 const update = (originalUPC, product) => {
@@ -172,6 +195,18 @@ const update = (originalUPC, product) => {
     throw new Error(
       "Product name is required."
     );
+  }
+
+  if (newUPC !== currentUPC) {
+    const conflictingProduct = database.get(
+      "SELECT upc FROM products WHERE upc = ?",
+      newUPC
+    );
+    if (conflictingProduct) {
+      throw new Error(
+        `UPC ${newUPC} is already assigned to another product.`
+      );
+    }
   }
 
 const result = database.run(`

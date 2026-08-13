@@ -31,7 +31,7 @@ export default function Sales({ onBack }) {
 
   const filteredSales = sales.filter((sale) => {
     const value = search.toLowerCase();
-    const matchesDate = !selectedDate || formatDateKey(sale.createdAt) === selectedDate;
+    const matchesDate = !selectedDate || formatDateKey(sale.closedAt || sale.createdAt) === selectedDate;
 
     return matchesDate && (
       sale.invoiceNumber
@@ -45,7 +45,7 @@ export default function Sales({ onBack }) {
 
   const dayGroups = useMemo(() => Object.entries(
     filteredSales.reduce((groups, sale) => {
-      const dateKey = formatDateKey(sale.createdAt);
+      const dateKey = formatDateKey(sale.closedAt || sale.createdAt);
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(sale);
       return groups;
@@ -183,6 +183,7 @@ const handleConfirmPayment = async ({
               <th>Invoice</th>
               <th>Customer</th>
               <th>Date</th>
+              <th>Collection date</th>
               <th>Total</th>
               <th>Status</th>
               <th>Actions</th>
@@ -196,7 +197,16 @@ const handleConfirmPayment = async ({
                 <td>{sale.customerName}</td>
 
                 <td>
-                  {new Date(sale.createdAt).toLocaleDateString()}
+                  {new Date(sale.closedAt || sale.createdAt).toLocaleString([], {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </td>
+
+                <td>
+                  {sale.dueDate
+                    ? new Date(`${String(sale.dueDate).slice(0, 10)}T00:00:00`).toLocaleDateString()
+                    : "—"}
                 </td>
 
                 <td>
@@ -213,7 +223,9 @@ const handleConfirmPayment = async ({
                   >
                     {sale.status === "PAID"
                       ? "Paid"
-                      : "Pending Payment"}
+                      : sale.status === "OPEN"
+                        ? "Open Account"
+                        : "Pending Payment"}
                   </span>
                 </td>
 
@@ -226,7 +238,7 @@ const handleConfirmPayment = async ({
                       View
                     </button>
 
-                    {sale.status !== "PAID" && (
+                    {sale.status !== "PAID" && sale.status !== "OPEN" && (
                       <button
                         type="button"
                         className="sales-payment-button"

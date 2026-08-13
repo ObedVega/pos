@@ -39,7 +39,8 @@ export default function Reports({ onBack }) {
     : { startDate: date, endDate: date };
 
   const reportSales = useMemo(() => sales.filter((sale) => {
-    const saleDate = dateKey(sale.createdAt);
+    if (sale.status === "OPEN") return false;
+    const saleDate = dateKey(sale.closedAt || sale.createdAt);
     return saleDate >= range.startDate && saleDate <= range.endDate;
   }), [sales, range.startDate, range.endDate]);
 

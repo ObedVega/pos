@@ -72,8 +72,12 @@ export default function InvoicePreview({
   const formatMoney = (value) =>
     `$${Number(value || 0).toFixed(2)}`;
 
-  const formatDate = (value) =>
-    new Date(value).toLocaleDateString(
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(value))
+      ? new Date(`${value}T00:00:00`)
+      : new Date(value);
+    return date.toLocaleDateString(
       "en-US",
       {
         month: "2-digit",
@@ -81,6 +85,16 @@ export default function InvoicePreview({
         year: "numeric",
       }
     );
+  };
+
+  const formatDateTime = (value) =>
+    new Date(value).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
 
   const business = businessSettings ?? {};
   const displayedDailyNotice =
@@ -205,10 +219,15 @@ export default function InvoicePreview({
                 </div>
 
                 <div>
-                  <dt>Invoice date</dt>
+                  <dt>Sale date</dt>
                   <dd>
-                    {formatDate(sale.createdAt)}
+                    {formatDateTime(sale.closedAt || sale.createdAt)}
                   </dd>
+                </div>
+
+                <div>
+                  <dt>Collection date</dt>
+                  <dd>{formatDate(sale.dueDate)}</dd>
                 </div>
 
                 <div>
@@ -292,8 +311,8 @@ export default function InvoicePreview({
             </thead>
 
             <tbody>
-              {sale.items.map((item) => (
-                <tr key={item.productId}>
+              {sale.items.map((item, index) => (
+                <tr key={item.saleItemId || item.id || `${item.productId}-${index}`}>
                   <td>{item.quantity}</td>
 
                   <td>
@@ -303,6 +322,9 @@ export default function InvoicePreview({
                       <small>
                         UPC: {item.upc}
                       </small>
+                    )}
+                    {item.addedAt && (
+                      <small>Added: {formatDateTime(item.addedAt)}</small>
                     )}
                   </td>
 
@@ -337,6 +359,11 @@ export default function InvoicePreview({
                 </strong>
               </p>
 
+              <p>
+                Scheduled collection:{" "}
+                <strong>{formatDate(sale.dueDate)}</strong>
+              </p>
+
               {sale.paymentMethod && (
                 <p>
                   Method:{" "}
@@ -350,7 +377,7 @@ export default function InvoicePreview({
                 <p>
                   Paid on:{" "}
                   <strong>
-                    {formatDate(sale.paidAt)}
+                    {formatDateTime(sale.paidAt)}
                   </strong>
                 </p>
               )}
