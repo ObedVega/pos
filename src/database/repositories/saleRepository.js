@@ -155,6 +155,35 @@ const create = (sale) => save(sale, true);
 const saveOpen = (sale) => save(sale, false);
 
 const getAll = () => database.all("SELECT * FROM sales ORDER BY created_at DESC, rowid DESC").map(mapSale);
+const getReport = ({ startDate, endDate } = {}) => {
+  ensureOpenSaleSchema();
+  const start = String(startDate || "");
+  const end = String(endDate || start);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start) {
+    throw new Error("A valid report date range is required.");
+  }
+  return database.all(`
+    SELECT id, invoice_number, customer_name, status, payment_method,
+           subtotal, yard_fee, tax, total, balance_due, created_at, closed_at
+    FROM sales
+    WHERE status <> 'OPEN'
+      AND DATE(COALESCE(closed_at, created_at), 'localtime') BETWEEN ? AND ?
+    ORDER BY created_at DESC, rowid DESC
+  `, start, end).map((row) => ({
+    id: row.id,
+    invoiceNumber: row.invoice_number,
+    customerName: row.customer_name,
+    status: row.status,
+    paymentMethod: row.payment_method,
+    subtotal: Number(row.subtotal),
+    yardFee: Number(row.yard_fee),
+    tax: Number(row.tax),
+    total: Number(row.total),
+    balanceDue: Number(row.balance_due),
+    createdAt: row.created_at,
+    closedAt: row.closed_at,
+  }));
+};
 const markAsPaid = (id, paymentMethod) => {
   const result = database.run(
     "UPDATE sales SET status = 'PAID', payment_status = 'PAID', payment_method = ?, amount_paid = total, balance_due = 0, paid_at = ? WHERE id = ?",
@@ -168,4 +197,4 @@ const markAsPaid = (id, paymentMethod) => {
 const markAsPrinted = (id) => { const result = database.run("UPDATE sales SET delivery_status = 'PRINTED', printed_at = CURRENT_TIMESTAMP WHERE id = ?", id); if (!result.changes) throw new Error("Sale not found."); return getById(id); };
 const markAsEmailed = (id) => { const result = database.run("UPDATE sales SET delivery_status = 'EMAILED', emailed_at = CURRENT_TIMESTAMP WHERE id = ?", id); if (!result.changes) throw new Error("Sale not found."); return getById(id); };
 
-module.exports = { create, saveOpen, getOpenByCustomer, getAll, getById, markAsPaid, markAsPrinted, markAsEmailed };
+module.exports = { create, saveOpen, getOpenByCustomer, getAll, getReport, getById, markAsPaid, markAsPrinted, markAsEmailed };

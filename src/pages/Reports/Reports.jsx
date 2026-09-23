@@ -27,22 +27,33 @@ export default function Reports({ onBack }) {
   const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    saleService.getAll()
-      .then((result) => setSales(Array.isArray(result) ? result : []))
-      .catch(() => setMessage("Could not load sales."))
-      .finally(() => setIsLoading(false));
-  }, []);
-
   const range = period === "week"
     ? weekRange(date)
     : { startDate: date, endDate: date };
 
-  const reportSales = useMemo(() => sales.filter((sale) => {
-    if (sale.status === "OPEN") return false;
-    const saleDate = dateKey(sale.closedAt || sale.createdAt);
-    return saleDate >= range.startDate && saleDate <= range.endDate;
-  }), [sales, range.startDate, range.endDate]);
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setSales([]);
+    setMessage("");
+    saleService.getReport({ startDate: range.startDate, endDate: range.endDate })
+      .then((result) => {
+        if (active) setSales(Array.isArray(result) ? result : []);
+      })
+      .catch((error) => {
+        console.error("Could not load sales report:", error);
+        if (active) {
+          setSales([]);
+          setMessage(`Could not load sales report: ${error.message || error}`);
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [range.startDate, range.endDate]);
+
+  const reportSales = sales;
 
   const summary = useMemo(() => {
     const total = reportSales.reduce((sum, sale) => sum + Number(sale.total), 0);
@@ -119,7 +130,8 @@ export default function Reports({ onBack }) {
                 <td>{sale.status === "PAID" ? "Paid" : "Pending"}</td>
                 <td>${Number(sale.total).toFixed(2)}</td>
               </tr>)}
-              {!isLoading && reportSales.length === 0 && <tr><td colSpan="5" className="reports-empty">No sales for this period.</td></tr>}
+              {isLoading && <tr><td colSpan="5" className="reports-empty">Loading report...</td></tr>}
+              {!isLoading && !message && reportSales.length === 0 && <tr><td colSpan="5" className="reports-empty">No sales for this period.</td></tr>}
             </tbody>
           </table>
         </section>

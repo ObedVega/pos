@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getOpenSaleByCustomer: (customerId) =>
     ipcRenderer.invoke("sales:get-open-by-customer", customerId),
   getSales: () => ipcRenderer.invoke("sales:get-all"),
+  getSalesReport: (range) => ipcRenderer.invoke("sales:get-report", range),
   getSaleById: (id) => ipcRenderer.invoke("sales:get-by-id", id),
   markSaleAsPaid: (id, paymentMethod) => ipcRenderer.invoke("sales:mark-paid", id, paymentMethod),
   markSaleAsPrinted: (id) => ipcRenderer.invoke("sales:mark-printed", id),
