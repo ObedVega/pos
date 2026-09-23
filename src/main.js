@@ -25,6 +25,28 @@ if (require("electron-squirrel-startup")) {
 }
 
 let mainWindow;
+let logFilePath = "";
+
+const writeLog = (level, message, error) => {
+  try {
+    if (!logFilePath && app.isReady()) {
+      const logDirectory = path.join(app.getPath("userData"), "logs");
+      fs.mkdirSync(logDirectory, { recursive: true });
+      logFilePath = path.join(logDirectory, "pos.log");
+    }
+    if (!logFilePath) return;
+    const detail = error ? ` ${error.stack || error.message || String(error)}` : "";
+    fs.appendFileSync(logFilePath, `[${new Date().toISOString()}] ${level} ${message}${detail}\n`);
+  } catch (_) {
+    // Logging must never stop the POS from starting.
+  }
+};
+
+process.on("uncaughtException", (error) => {
+  writeLog("ERROR", "Uncaught main-process exception", error);
+  app.exit(1);
+});
+process.on("unhandledRejection", (error) => writeLog("ERROR", "Unhandled main-process rejection", error));
 try {
   const { DatabaseSync } = require("node:sqlite");
   console.log("✅ node:sqlite disponible");
@@ -338,6 +360,13 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    writeLog("ERROR", `Renderer process ended: ${JSON.stringify(details)}`);
+  });
+  mainWindow.webContents.on("did-fail-load", (_event, code, description, url) => {
+    writeLog("ERROR", `Renderer failed to load (${code}): ${description}; ${url}`);
+  });
 
   createApplicationMenu();
 
@@ -707,6 +736,21 @@ ipcMain.handle(
   ipcMain.handle("sales:save-open", (_event, sale) => saleRepository.saveOpen(sale));
   ipcMain.handle("sales:get-open-by-customer", (_event, customerId) => saleRepository.getOpenByCustomer(customerId));
   ipcMain.handle("sales:get-all", () => saleRepository.getAll());
+  ipcMain.handle("sales:get-page", (_event, options) => {
+    const startedAt = Date.now();
+    try {
+      const result = saleRepository.getPage(options);
+      writeLog("INFO", `Sales page loaded ${result.sales.length} rows in ${Date.now() - startedAt} ms`);
+      return result;
+    } catch (error) {
+      writeLog("ERROR", "Could not load Sales page", error);
+      throw error;
+    }
+  });
+  ipcMain.handle("diagnostics:log-path", () => logFilePath || path.join(app.getPath("userData"), "logs", "pos.log"));
+  ipcMain.on("diagnostics:renderer-error", (_event, detail) => {
+    writeLog("ERROR", `Renderer error: ${String(detail || "Unknown renderer error")}`);
+  });
   ipcMain.handle("sales:get-report", (_event, range) => saleRepository.getReport(range));
   ipcMain.handle("sales:get-by-id", (_event, id) => saleRepository.getById(id));
   ipcMain.handle("sales:mark-paid", (_event, id, paymentMethod) => saleRepository.markAsPaid(id, paymentMethod));
@@ -756,6 +800,7 @@ const registerPrintHandlers = () => {
 };
 
 app.whenReady().then(() => {
+  writeLog("INFO", `POS ${app.getVersion()} starting; data directory: ${app.getPath("userData")}`);
   database.initialize(app);
 
   productRepository.seed(productsSeed);

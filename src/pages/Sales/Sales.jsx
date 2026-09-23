@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import InvoicePreview from "../../components/InvoicePreview/InvoicePreview";
 import ReceivePayment from "../../components/ReceivePayment/ReceivePayment";
@@ -14,14 +14,67 @@ export default function Sales({ onBack }) {
   const [selectedSale, setSelectedSale] =
     useState(null);
   const [paymentSale, setPaymentSale] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const requestId = useRef(0);
 
   useEffect(() => {
-    loadSales();
-  }, []);
+    const currentRequest = ++requestId.current;
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const result = await saleService.getPage({ search, date: selectedDate });
+        if (currentRequest !== requestId.current) return;
+        setSales(Array.isArray(result?.sales) ? result.sales : []);
+        setHasMore(Boolean(result?.hasMore));
+      } catch (loadError) {
+        if (currentRequest !== requestId.current) return;
+        console.error("Could not load sales:", loadError);
+        setSales([]);
+        setHasMore(false);
+        setError(loadError?.message || "Could not load sales.");
+      } finally {
+        if (currentRequest === requestId.current) setIsLoading(false);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      requestId.current++;
+    };
+  }, [search, selectedDate]);
 
-  const loadSales = async () => {
-    const result = await saleService.getAll();
-    setSales(result);
+  const loadMore = async () => {
+    if (isLoading || !hasMore) return;
+    setIsLoading(true);
+    setError("");
+    try {
+      const result = await saleService.getPage({
+        search,
+        date: selectedDate,
+        offset: sales.length,
+      });
+      setSales((current) => [...current, ...(result?.sales || [])]);
+      setHasMore(Boolean(result?.hasMore));
+    } catch (loadError) {
+      console.error("Could not load more sales:", loadError);
+      setError(loadError?.message || "Could not load more sales.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openSale = async (sale) => {
+    setError("");
+    try {
+      const fullSale = await saleService.getById(sale.id);
+      if (!fullSale) throw new Error("Sale not found.");
+      setSelectedSale(fullSale);
+    } catch (loadError) {
+      console.error("Could not open sale:", loadError);
+      setError(loadError?.message || "Could not open sale.");
+    }
   };
 
   const formatDateKey = (value) => {
@@ -29,28 +82,14 @@ export default function Sales({ onBack }) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
 
-  const filteredSales = sales.filter((sale) => {
-    const value = search.toLowerCase();
-    const matchesDate = !selectedDate || formatDateKey(sale.closedAt || sale.createdAt) === selectedDate;
-
-    return matchesDate && (
-      sale.invoiceNumber
-        .toLowerCase()
-        .includes(value) ||
-      sale.customerName
-        .toLowerCase()
-        .includes(value)
-    );
-  });
-
   const dayGroups = useMemo(() => Object.entries(
-    filteredSales.reduce((groups, sale) => {
+    sales.reduce((groups, sale) => {
       const dateKey = formatDateKey(sale.closedAt || sale.createdAt);
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(sale);
       return groups;
     }, {})
-  ), [filteredSales]);
+  ), [sales]);
 
   const openReceivePayment = (sale) => {
   setPaymentSale(sale);
@@ -140,6 +179,8 @@ const handleConfirmPayment = async ({
           )}
 
         </div>
+
+        {error && <div className="sales-load-error" role="alert">{error}</div>}
 
 <div className="sales-table-wrapper">
   {dayGroups.map(([dateKey, daySales]) => {
@@ -233,7 +274,7 @@ const handleConfirmPayment = async ({
                   <div className="sales-actions">
                     <button
                       type="button"
-                      onClick={() => setSelectedSale(sale)}
+                      onClick={() => openSale(sale)}
                     >
                       View
                     </button>
@@ -259,10 +300,16 @@ const handleConfirmPayment = async ({
     );
   })}
 
-  {dayGroups.length === 0 && (
+  {dayGroups.length === 0 && !isLoading && !error && (
     <div className="sales-empty">
       No sales found.
     </div>
+  )}
+  {isLoading && <div className="sales-loading">Loading sales...</div>}
+  {hasMore && !isLoading && (
+    <button type="button" className="sales-load-more" onClick={loadMore}>
+      Load more sales
+    </button>
   )}
 </div>
 

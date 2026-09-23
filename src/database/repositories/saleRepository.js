@@ -155,6 +155,52 @@ const create = (sale) => save(sale, true);
 const saveOpen = (sale) => save(sale, false);
 
 const getAll = () => database.all("SELECT * FROM sales ORDER BY created_at DESC, rowid DESC").map(mapSale);
+// Return lightweight rows for the Sales screen. Do not load every invoice's
+// items up front: mapSale performs a second query per sale and the synchronous
+// main process can become unresponsive as the history grows.
+const getPage = ({ search = "", date = "", offset = 0, limit = 100 } = {}) => {
+  ensureOpenSaleSchema();
+  const safeOffset = Math.max(0, Math.floor(Number(offset) || 0));
+  const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 100)));
+  const query = String(search || "").trim().toLowerCase();
+  const dateKey = String(date || "").trim();
+  const conditions = [];
+  const params = [];
+
+  if (query) {
+    conditions.push("(LOWER(invoice_number) LIKE ? OR LOWER(customer_name) LIKE ?)");
+    params.push(`%${query}%`, `%${query}%`);
+  }
+  if (dateKey) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) throw new Error("Invalid sales date.");
+    conditions.push("DATE(COALESCE(closed_at, created_at), 'localtime') = ?");
+    params.push(dateKey);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const rows = database.all(`
+    SELECT id, invoice_number, customer_name, status, total, balance_due,
+           created_at, closed_at, due_date
+    FROM sales ${where}
+    ORDER BY created_at DESC, rowid DESC
+    LIMIT ? OFFSET ?
+  `, ...params, safeLimit + 1, safeOffset);
+
+  return {
+    sales: rows.slice(0, safeLimit).map((row) => ({
+      id: row.id,
+      invoiceNumber: row.invoice_number,
+      customerName: row.customer_name,
+      status: row.status,
+      total: Number(row.total),
+      balanceDue: Number(row.balance_due),
+      createdAt: row.created_at,
+      closedAt: row.closed_at,
+      dueDate: row.due_date,
+    })),
+    hasMore: rows.length > safeLimit,
+  };
+};
 const getReport = ({ startDate, endDate } = {}) => {
   ensureOpenSaleSchema();
   const start = String(startDate || "");
@@ -197,4 +243,4 @@ const markAsPaid = (id, paymentMethod) => {
 const markAsPrinted = (id) => { const result = database.run("UPDATE sales SET delivery_status = 'PRINTED', printed_at = CURRENT_TIMESTAMP WHERE id = ?", id); if (!result.changes) throw new Error("Sale not found."); return getById(id); };
 const markAsEmailed = (id) => { const result = database.run("UPDATE sales SET delivery_status = 'EMAILED', emailed_at = CURRENT_TIMESTAMP WHERE id = ?", id); if (!result.changes) throw new Error("Sale not found."); return getById(id); };
 
-module.exports = { create, saveOpen, getOpenByCustomer, getAll, getReport, getById, markAsPaid, markAsPrinted, markAsEmailed };
+module.exports = { create, saveOpen, getOpenByCustomer, getAll, getPage, getReport, getById, markAsPaid, markAsPrinted, markAsEmailed };
